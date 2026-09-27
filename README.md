@@ -11,6 +11,8 @@ An endless procedurally-generated mountain. Momentum-based jumping: every leap i
 - 🎮 Play it: https://oopsallfalling.itch.io/ledge
 - 🌐 Mirror: https://yuanb10.github.io/OopsAllFalling/ledge/
 
+![Ledge gameplay](ledge/screenshot.png)
+
 **Dev notes**
 
 - Built September 2026 — from idea to itch.io launch in about 2 days.
