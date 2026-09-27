@@ -35,7 +35,7 @@ Sixteen labeled objects. Four homes: bookshelf, wardrobe, fridge, trash. Drag ea
 
 - Built September 2026 — the first of three planned cleaning games (each its own game, not modes).
 - One self-contained HTML file. No frameworks, no build step, no backend.
-- 32-object pool, 16 drawn per round, every item labeled after playtesting said the icons were unclear.
+- 128-object pool, 16 drawn per round, every item labeled after playtesting said the icons were unclear.
 - Art direction picked from three cover options; the whole game was restyled to match the cut-paper collage winner.
 
 ## What's next
