@@ -22,6 +22,22 @@ An endless procedurally-generated mountain. Momentum-based jumping: every leap i
 - One-tap share card (1080×1920, essential content inside a 4:5 safe area) so your suffering is Instagram-Story-ready.
 - Best height resets every session. The mountain doesn't care about your past achievements.
 
+### 🧹 Tidy Rush — a cut-paper sorting rush
+
+Sixteen labeled objects. Four homes: bookshelf, wardrobe, fridge, trash. Drag each one where it belongs — wrong drops cost you 3 seconds, streaks build combos. Handmade cut-paper collage art direction: kraft paper, masking tape, and rough-cut edges throughout.
+
+- 🎮 Play it: https://oopsallfalling.itch.io/tidy-rush
+- 🌐 Mirror: https://yuanb10.github.io/OopsAllFalling/tidy-rush/
+
+![Tidy Rush gameplay](tidy-rush/screenshot.png)
+
+**Dev notes**
+
+- Built September 2026 — the first of three planned cleaning games (each its own game, not modes).
+- One self-contained HTML file. No frameworks, no build step, no backend.
+- 32-object pool, 16 drawn per round, every item labeled after playtesting said the icons were unclear.
+- Art direction picked from three cover options; the whole game was restyled to match the cut-paper collage winner.
+
 ## What's next
 
 More tiny games. Probably more falling.
