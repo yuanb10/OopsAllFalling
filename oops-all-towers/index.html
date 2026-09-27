@@ -181,7 +181,9 @@
         <li>⬆️ Tap a tower to upgrade or sell it.</li>
         <li>🏠 Don't let junk reach your house. Survive 20 waves!</li>
       </ul>
-      <button class="bigbtn" id="startBtn">START</button>
+      <button class="bigbtn" id="startBtn">START</button><br>
+      <button class="bigbtn" id="hardBtn" style="font-size:18px;padding:6px 22px;background:#f2c14e;">HARD MODE: OFF</button>
+      <div id="bestLine" style="margin-top:10px;font-size:16px;opacity:.75;"></div>
       <div id="oafTag">an OopsAllFalling joint</div>
     </div>
   </div>
@@ -236,7 +238,15 @@ const ENEMIES = {
   anvil:   { hp:400,  speed:36, bounty:35,  lives:3, r:15, icon:'⚙️' },
   grand:   { hp:2000, speed:40, bounty:200, lives:10,r:23, icon:'👑' },
 };
-const HP_SCALE = w => 1 + w * 0.09;
+// HP scaling: base linear + 10% bump on late normal waves (12-20),
+// brutal 1.20^ compounding in endless, x1.35 in hard mode.
+function hpScale(w) {
+  let s = 1 + w * 0.09;
+  if (w >= 12 && w <= 20) s *= 1.10;
+  if (w > 20) s *= Math.pow(1.20, w - 20);
+  if (hardMode) s *= 1.35;
+  return s;
+}
 
 // ---------- Tower definitions ----------
 const TOWERS = {
@@ -272,18 +282,50 @@ const WAVES = [
   [{t:'safe',n:18,gap:.45},{t:'anvil',n:12,gap:.75,delay:9},{t:'piano',n:8,gap:.5,delay:14}],
   [{t:'grand',n:1,gap:1},{t:'anvil',n:10,gap:.8,delay:6},{t:'safe',n:10,gap:.5,delay:12}],
 ];
+
+// ---------- Endless waves (21+): procedurally generated ----------
+function endlessDef(w) {
+  const k = w - 20;                    // endless depth, 1-based
+  const surge = (k % 5 === 0);         // every 5th endless wave = Storm Surge
+  const size = surge ? 2 : 1;
+  const gapScale = Math.max(0.45, 1 - 0.03 * k);  // spawn interval tightens, min cap
+  const G = (t, n, gap, delay) => ({ t, n: Math.round(n * size), gap: Math.max(0.18, gap * gapScale), delay });
+  return {
+    surge,
+    groups: [
+      G('crate',   6 + k * 0.5, 0.55, 0),
+      G('bowling', 10 + k,      0.40, 4),
+      G('piano',   6 + k,       0.55, 8),
+      G('safe',    8 + k * 1.5, 0.55, 12),
+      G('anvil',   6 + k * 1.2, 0.90, 16),
+    ],
+  };
+}
 const TOTAL_WAVES = 20;
 
 // ---------- State ----------
 let gold, lives, wave, phase, paused, speedMul, muted;
+let hardMode = false, endless = false;   // hard-mode toggle, endless-mode flag
 let towers, enemies, projectiles, particles;
 let spawnQueue, waveT;
 let gameTime, goldEarned, towersBuilt, leaks;
 let selected = null;   // {col,row} of tower selected, or {buildCol,buildRow}
 let msgTimer = 0;
 
+// ---------- Best wave persistence ----------
+const BEST_KEY = 'oat_best_wave';
+function getBest() {
+  try { return parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0; }
+  catch (e) { return 0; }
+}
+function saveBest(w) {
+  try { if (w > getBest()) localStorage.setItem(BEST_KEY, String(w)); }
+  catch (e) {}
+}
+
 function resetGame() {
-  gold = 220; lives = 20; wave = 0;
+  gold = 220; lives = hardMode ? 15 : 20; wave = 0;
+  endless = false;
   phase = 'title'; paused = false; speedMul = 1; muted = false;
   towers = []; enemies = []; projectiles = []; particles = [];
   spawnQueue = []; waveT = 0;
@@ -489,10 +531,11 @@ function trySell(t) {
 
 function spawnEnemy(type) {
   const d = ENEMIES[type];
-  const hp = Math.round(d.hp * HP_SCALE(wave));
+  const hp = Math.round(d.hp * hpScale(wave));
+  const spdMul = wave > 20 ? 1 + Math.min(0.30, 0.01 * (wave - 20)) : 1; // endless speed, capped +30%
   enemies.push({
     type, hp, maxHp: hp, dist: 0,
-    speed: d.speed * (0.94 + Math.random()*0.12),
+    speed: d.speed * spdMul * (0.94 + Math.random()*0.12),
     slowM: 1, bounty: d.bounty, livesCost: d.lives, r: d.r,
     dropT: 0, dead: false,
     rot: (Math.random()-0.5)*0.5, seed: Math.random()*10,
@@ -501,26 +544,30 @@ function spawnEnemy(type) {
 }
 function buildSpawnQueue(w) {
   spawnQueue = [];
-  for (const g of WAVES[w-1]) {
+  const groups = w <= TOTAL_WAVES ? WAVES[w-1] : endlessDef(w).groups;
+  for (const g of groups) {
     const delay = g.delay || 0;
     for (let i = 0; i < g.n; i++) spawnQueue.push({ t: g.t, at: delay + i * g.gap });
   }
   spawnQueue.sort((a,b) => a.at - b.at);
 }
 function startWave() {
-  if (phase !== 'build' || wave >= TOTAL_WAVES) return false;
+  if (phase !== 'build') return false;
+  if (!endless && wave >= TOTAL_WAVES) return false;
   wave++;
   buildSpawnQueue(wave);
+  saveBest(wave);
   waveT = 0; phase = 'wave';
   closePopup();
-  setMsg('Wave ' + wave + ' incoming!');
+  if (endless && endlessDef(wave).surge) { setMsg('⛈ STORM SURGE — WAVE ' + wave + '!'); SFX.boom(); }
+  else setMsg('Wave ' + wave + (endless ? ' — endless' : '') + ' incoming!');
   updateHUD(); updateBottom();
   return true;
 }
 function waveClear() {
   const bonus = 20 + 4 * wave;
   gold += bonus; goldEarned += bonus;
-  if (wave >= TOTAL_WAVES) { victory(); return; }
+  if (!endless && wave >= TOTAL_WAVES) { victory(); return; }
   phase = 'build';
   setMsg('Wave ' + wave + ' cleared! +$' + bonus);
   SFX.coin();
@@ -531,7 +578,8 @@ function damageEnemy(e, dmg) {
   e.hp -= dmg;
   if (e.hp <= 0) {
     e.dead = true;
-    gold += e.bounty; goldEarned += e.bounty;
+    const bountyVal = Math.round(e.bounty * (hardMode ? 1.15 : 1)); // hard mode pays +15%
+    gold += bountyVal; goldEarned += bountyVal;
     SFX.coin();
     burst(e.x, e.y, '#f2c14e', 8, 70);
     updateHUD();
@@ -853,19 +901,24 @@ function drawEnemy(e) {
 const $ = id => document.getElementById(id);
 function updateHUD() {
   $('gold').textContent = Math.floor(gold);
-  $('lives').textContent = lives;
-  $('wave').textContent = (wave === 0 ? '–' : wave) + '/' + TOTAL_WAVES;
+  $('lives').textContent = lives + (hardMode ? '🔥' : '');
+  $('wave').textContent = endless ? wave + ' ∞' : (wave === 0 ? '–' : wave) + '/' + TOTAL_WAVES;
 }
 function setMsg(t) { $('msg').textContent = t; msgTimer = 4; }
 function wavePreviewHTML(w) {
-  if (w > TOTAL_WAVES) return '–';
+  if (w <= TOTAL_WAVES) {
+    const counts = {};
+    for (const g of WAVES[w-1]) counts[g.t] = (counts[g.t] || 0) + g.n;
+    return Object.keys(counts).map(t => ENEMIES[t].icon + '×' + counts[t]).join(' ');
+  }
+  const def = endlessDef(w);
   const counts = {};
-  for (const g of WAVES[w-1]) counts[g.t] = (counts[g.t] || 0) + g.n;
-  return Object.keys(counts).map(t => ENEMIES[t].icon + '×' + counts[t]).join(' ');
+  for (const g of def.groups) counts[g.t] = (counts[g.t] || 0) + g.n;
+  return (def.surge ? '⛈ SURGE ' : '∞ ') + Object.keys(counts).map(t => ENEMIES[t].icon + '×' + counts[t]).join(' ');
 }
 function updateBottom() {
   const sw = $('startWave');
-  if (phase === 'build' && wave < TOTAL_WAVES) {
+  if (phase === 'build' && (endless || wave < TOTAL_WAVES)) {
     sw.disabled = false;
     $('nextDetail').textContent = wavePreviewHTML(wave + 1);
     $('nextwave').querySelector('.lbl').textContent = 'NEXT WAVE ' + (wave + 1);
@@ -977,10 +1030,18 @@ stagewrap.addEventListener('pointerdown', ev => {
 // ---------- Buttons ----------
 $('startBtn').addEventListener('click', () => {
   audio(); SFX.upgrade();
+  if (hardMode) { lives = 15; setMsg('🔥 Hard mode! Enemies +35% HP, bounties +15%. Good luck!'); }
+  else setMsg('Tap grass to build towers, then start Wave 1!');
   $('overlay').classList.add('hidden');
   phase = 'build';
-  setMsg('Tap grass to build towers, then start Wave 1!');
   updateHUD(); updateBottom();
+});
+$('hardBtn').addEventListener('click', () => {
+  audio();
+  hardMode = !hardMode;
+  $('hardBtn').textContent = 'HARD MODE: ' + (hardMode ? 'ON 🔥' : 'OFF');
+  $('hardBtn').style.background = hardMode ? '#e07840' : '#f2c14e';
+  SFX.click();
 });
 $('startWave').addEventListener('click', () => { audio(); startWave(); });
 $('speedBtn').addEventListener('click', () => {
@@ -1011,16 +1072,19 @@ function statsHTML() {
     '<div>⏱ time: ' + fmtTime(gameTime) + '</div>' +
     '<div>🗼 towers built: ' + towersBuilt + '</div>' +
     '<div>💰 gold earned: $' + Math.floor(goldEarned) + '</div>' +
-    '<div>🕳️ leaks: ' + leaks + '</div></div>';
+    '<div>🕳️ leaks: ' + leaks + '</div>' +
+    (hardMode ? '<div>🔥 hard mode</div>' : '') + '</div>';
 }
 function gameOver() {
   phase = 'lost';
+  saveBest(wave);
   SFX.lose();
   closePopup();
   updateBottom();
   $('overlay').innerHTML =
     '<div class="card"><h2>HOUSE<br>DEMOLISHED</h2>' +
     '<p>The junk got through on wave ' + wave + '.</p>' + statsHTML() +
+    '<p>🏆 Best: Wave ' + getBest() + '</p>' +
     '<button class="bigbtn" id="againBtn">TRY AGAIN</button>' +
     '<div id="oafTag">an OopsAllFalling joint</div></div>';
   $('overlay').classList.remove('hidden');
@@ -1028,6 +1092,7 @@ function gameOver() {
 }
 function victory() {
   phase = 'won';
+  saveBest(TOTAL_WAVES);
   SFX.win();
   closePopup();
   updateBottom();
@@ -1035,10 +1100,20 @@ function victory() {
   $('overlay').innerHTML =
     '<div class="card"><h2>HOUSE<br>SAVED! 🎉</h2>' +
     '<p>You survived all 20 waves of falling junk.</p>' + statsHTML() +
+    '<p>🏆 Best: Wave ' + getBest() + '</p>' +
+    '<button class="bigbtn" id="endlessBtn" style="background:#c9a0e8;">KEEP GOING — ENDLESS</button><br>' +
     '<button class="bigbtn" id="againBtn">PLAY AGAIN</button>' +
     '<div id="oafTag">an OopsAllFalling joint</div></div>';
   $('overlay').classList.remove('hidden');
   $('againBtn').addEventListener('click', () => location.reload());
+  $('endlessBtn').addEventListener('click', () => {
+    audio(); SFX.upgrade();
+    endless = true;
+    $('overlay').classList.add('hidden');
+    phase = 'build';
+    setMsg('Endless mode! The sky keeps falling…');
+    updateHUD(); updateBottom();
+  });
 }
 function confetti() {
   const colors = ['#e07840','#4a90d9','#f2c14e','#7fb069','#c0392b'];
@@ -1065,6 +1140,10 @@ resetGame();
 fitCanvas();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => buildBackground());
 updateHUD(); updateBottom();
+(function showBest() {
+  const b = getBest();
+  if (b > 0) $('bestLine').textContent = '🏆 Best: Wave ' + b;
+})();
 requestAnimationFrame(frame);
 
 // ---------- Debug / test hook ----------
@@ -1076,6 +1155,11 @@ window.OAT = {
   get enemyCount() { return enemies.length; },
   get towerCount() { return towers.length; },
   get queueLen() { return spawnQueue.length; },
+  get endless() { return endless; },
+  get hardMode() { return hardMode; },
+  best() { return getBest(); },
+  endlessInfo(w) { return w > 20 ? endlessDef(w) : null; },
+  enemyHP() { return enemies.length ? { max: Math.max(...enemies.map(e => e.maxHp)), n: enemies.length } : { max: 0, n: 0 }; },
   build(type, c, r) { return tryBuild(type, c, r); },
   upgradeAt(c, r) { const t = towerAt(c, r); return t ? tryUpgrade(t) : false; },
   startWave() { return startWave(); },
