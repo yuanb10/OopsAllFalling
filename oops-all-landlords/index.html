@@ -20,299 +20,310 @@
     box-shadow:0 0 40px rgba(0,0,0,.5);
     display:flex; flex-direction:column;
   }
-  /* ---------- HUD ---------- */
-  #hud {
-    display:flex; gap:6px; padding:8px 10px 4px; z-index:5;
-    font-size:14px; font-weight:bold;
-  }
-  .pill {
-    background:#fffdf4; border:2px solid #3a2c1a; border-radius:20px;
-    padding:2px 10px; box-shadow:2px 2px 0 rgba(0,0,0,.25); white-space:nowrap;
-  }
+  #hud { display:flex; gap:6px; padding:8px 10px 2px; z-index:5; font-size:13px; font-weight:bold; flex-wrap:wrap; }
+  .pill { background:#fffdf4; border:2px solid #3a2c1a; border-radius:20px; padding:2px 9px;
+    box-shadow:2px 2px 0 rgba(0,0,0,.25); white-space:nowrap; }
+  .pill.bad { background:#f2b8b8; }
+  .pill.good { background:#c4e3ae; }
   #muteBtn { margin-left:auto; cursor:pointer; }
-  /* ---------- Board ---------- */
-  #boardWrap { padding:4px 10px; }
-  #board {
-    display:grid; grid-template-columns:repeat(7,1fr); grid-template-rows:repeat(7,1fr);
-    width:100%; aspect-ratio:1/1; position:relative;
-    background:#e8dcc0; border:3px solid #3a2c1a; border-radius:10px;
-    box-shadow:3px 3px 0 rgba(0,0,0,.3); overflow:hidden;
+  #flow { padding:2px 10px 4px; font-size:12px; color:#6a5a3a; }
+  #main { flex:1; overflow-y:auto; padding:2px 10px 10px; }
+  h4 { font-size:14px; margin:8px 0 4px; }
+  .cards { display:flex; gap:8px; }
+  .mcard {
+    flex:1; background:#fffdf4; border:2px solid #3a2c1a; border-radius:10px;
+    padding:6px; font-size:11px; text-align:center; box-shadow:2px 2px 0 rgba(0,0,0,.25);
+    display:flex; flex-direction:column; gap:2px; min-width:0;
   }
-  .tile {
-    border:1px dashed rgba(58,44,26,.35); font-size:8px; line-height:1.15;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; padding:1px; position:relative; overflow:hidden;
+  .mcard .ico { font-size:22px; }
+  .mcard .nm { font-weight:bold; font-size:12px; }
+  .mcard .dt { font-size:10px; color:#6a5a3a; }
+  .buybtn {
+    font-family:inherit; font-size:12px; font-weight:bold; cursor:pointer; margin-top:2px;
+    background:#8fd694; border:2px solid #3a2c1a; border-radius:8px; padding:4px 6px;
   }
-  .tile .ico { font-size:15px; }
-  .tile .nm { font-weight:bold; }
-  .tile .pr { color:#5a4a2a; }
-  .tile .own { position:absolute; top:1px; right:2px; font-size:10px; }
-  .tile .hs { position:absolute; bottom:0; left:0; right:0; font-size:8px; letter-spacing:1px; color:#b3541e; }
-  .tile.ownedA { box-shadow:inset 0 0 0 3px #2e7de9; }
-  .setA { background:#f6c9b8; } .setB { background:#c4e3ae; }
-  .setC { background:#bcd6f5; } .setD { background:#dcc2f2; }
-  .t-go { background:#a8d5a2; } .t-chance { background:#f7e6a2; }
-  .t-tax { background:#f2b8b8; } .t-special { background:#f5d9b0; }
-  #center {
-    grid-column:2/7; grid-row:2/7; background:#fbf6e8;
-    border:2px dashed #3a2c1a; border-radius:8px; margin:6px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:6px; padding:8px; text-align:center; z-index:2;
+  .buybtn:disabled { background:#c9c2ae; }
+  .buybtn:active { transform:translateY(1px); }
+  #portGrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .pcard {
+    background:#fffdf4; border:2px solid #3a2c1a; border-radius:10px; padding:6px 8px;
+    font-size:11px; box-shadow:2px 2px 0 rgba(0,0,0,.25); position:relative;
   }
-  #msg { font-size:13px; min-height:38px; display:flex; align-items:center; }
-  #diceRow { display:flex; align-items:center; gap:12px; }
-  #dice { font-size:44px; width:60px; height:60px; display:flex; align-items:center; justify-content:center;
-    background:#fffdf4; border:3px solid #3a2c1a; border-radius:12px; box-shadow:2px 2px 0 rgba(0,0,0,.3); }
-  #dice.rolling { animation:shake .5s; }
-  @keyframes shake { 0%{transform:rotate(0)} 25%{transform:rotate(-18deg) scale(1.1)} 50%{transform:rotate(14deg)} 75%{transform:rotate(-8deg)} 100%{transform:rotate(0)} }
-  #rollBtn {
-    font-family:inherit; font-size:20px; font-weight:bold; cursor:pointer;
-    background:#8fd694; border:3px solid #3a2c1a; border-radius:14px;
-    padding:10px 26px; box-shadow:3px 3px 0 rgba(0,0,0,.35);
+  .pcard .nm { font-weight:bold; font-size:12px; }
+  .pcard .mono { position:absolute; top:4px; right:6px; font-size:14px; }
+  .pcard .row { display:flex; gap:4px; margin-top:4px; }
+  .sbtn {
+    font-family:inherit; font-size:11px; font-weight:bold; cursor:pointer; flex:1;
+    border:2px solid #3a2c1a; border-radius:8px; padding:3px 4px; background:#f7e6a2;
   }
-  #rollBtn:active { transform:translate(2px,2px); box-shadow:1px 1px 0 rgba(0,0,0,.35); }
-  #rollBtn:disabled { background:#c9c2ae; cursor:default; }
-  /* player token */
-  #token {
-    position:absolute; width:26px; height:26px; font-size:20px; z-index:4;
-    transition:left .18s, top .18s; pointer-events:none;
-    filter:drop-shadow(2px 2px 1px rgba(0,0,0,.4));
+  .sbtn:disabled { background:#c9c2ae; }
+  .sbtn.sell { background:#e8b4b4; }
+  .empty { font-size:12px; color:#8a7a5a; padding:6px 0; }
+  /* action bar */
+  #abar {
+    border-top:3px solid #3a2c1a; background:#efe6cc; padding:8px 10px 12px;
+    display:flex; flex-direction:column; gap:8px;
   }
-  #token.hop { animation:hop .18s; }
-  @keyframes hop { 50% { transform:translateY(-10px); } }
-  /* ---------- bottom strip ---------- */
-  #strip {
-    flex:1; overflow-y:auto; padding:6px 10px 10px; font-size:12px;
+  #apRow { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:bold; }
+  .ap { font-size:16px; }
+  #btnRow { display:flex; gap:6px; }
+  .abtn {
+    font-family:inherit; font-size:13px; font-weight:bold; cursor:pointer; flex:1;
+    border:3px solid #3a2c1a; border-radius:10px; padding:7px 4px;
+    box-shadow:2px 2px 0 rgba(0,0,0,.3); background:#f7e6a2;
   }
-  #strip h4 { font-size:13px; margin:2px 0 4px; }
-  .chip {
-    display:inline-block; background:#fffdf4; border:2px solid #3a2c1a; border-radius:10px;
-    padding:2px 8px; margin:0 4px 4px 0; box-shadow:1px 1px 0 rgba(0,0,0,.25);
-  }
-  /* ---------- modal ---------- */
-  #modal {
-    position:absolute; inset:0; background:rgba(58,44,26,.55); z-index:20;
-    display:none; align-items:center; justify-content:center; padding:24px;
-  }
+  .abtn:active { transform:translate(2px,2px); box-shadow:none; }
+  .abtn:disabled { background:#c9c2ae; }
+  #endBtn { background:#8fd694; flex:1.4; font-size:15px; }
+  /* modal */
+  #modal { position:absolute; inset:0; background:rgba(58,44,26,.55); z-index:20;
+    display:none; align-items:center; justify-content:center; padding:24px; }
   #modal.show { display:flex; }
-  #card {
-    background:#fffdf4; border:3px solid #3a2c1a; border-radius:14px;
-    padding:20px; max-width:320px; width:100%; text-align:center;
-    box-shadow:5px 5px 0 rgba(0,0,0,.4); transform:rotate(-1deg);
-    animation:pop .25s;
-  }
+  #cardbox { background:#fffdf4; border:3px solid #3a2c1a; border-radius:14px;
+    padding:20px; max-width:330px; width:100%; text-align:center;
+    box-shadow:5px 5px 0 rgba(0,0,0,.4); transform:rotate(-1deg); animation:pop .25s;
+    max-height:80%; overflow-y:auto; }
   @keyframes pop { from { transform:scale(.8) rotate(2deg); } }
-  #card h3 { font-size:20px; margin-bottom:8px; }
-  #card p { font-size:14px; margin-bottom:14px; }
+  #cardbox h3 { font-size:20px; margin-bottom:8px; }
+  #cardbox .lines { text-align:left; font-size:13px; margin-bottom:12px; }
+  #cardbox .lines div { display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px dashed #c9bfa8; }
+  #cardbox .lines .tot { font-weight:bold; border-bottom:2px solid #3a2c1a; }
+  #cardbox p { font-size:14px; margin-bottom:14px; }
   .btnrow { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-  .mbtn {
-    font-family:inherit; font-size:16px; font-weight:bold; cursor:pointer;
-    border:3px solid #3a2c1a; border-radius:12px; padding:8px 18px;
-    box-shadow:2px 2px 0 rgba(0,0,0,.3); background:#8fd694;
-  }
+  .mbtn { font-family:inherit; font-size:15px; font-weight:bold; cursor:pointer;
+    border:3px solid #3a2c1a; border-radius:12px; padding:8px 16px;
+    box-shadow:2px 2px 0 rgba(0,0,0,.3); background:#8fd694; }
   .mbtn:active { transform:translate(2px,2px); box-shadow:none; }
-  .mbtn.no { background:#e8b4b4; }
   .mbtn.alt { background:#f7e6a2; }
-  /* ---------- title / end overlays ---------- */
-  .overlay {
-    position:absolute; inset:0; z-index:30; background:rgba(138,106,66,.97);
-    display:flex; align-items:center; justify-content:center; padding:24px;
-  }
+  .mbtn.no { background:#e8b4b4; }
+  .overlay { position:absolute; inset:0; z-index:30; background:rgba(138,106,66,.97);
+    display:flex; align-items:center; justify-content:center; padding:24px; }
   .overlay.hidden { display:none; }
-  .paper {
-    background:#fffdf4; border:3px solid #3a2c1a; border-radius:14px; padding:26px 22px;
-    max-width:330px; text-align:center; box-shadow:6px 6px 0 rgba(0,0,0,.4);
-    transform:rotate(-1.5deg);
-  }
+  .paper { background:#fffdf4; border:3px solid #3a2c1a; border-radius:14px; padding:26px 22px;
+    max-width:340px; text-align:center; box-shadow:6px 6px 0 rgba(0,0,0,.4); transform:rotate(-1.5deg); }
   .paper h1 { font-size:30px; line-height:1.1; margin-bottom:4px; }
   .paper .sub { font-size:14px; margin-bottom:14px; color:#6a5a3a; }
   .paper ul { text-align:left; font-size:13px; margin:0 0 16px 18px; }
-  .paper li { margin-bottom:4px; }
-  #endTitle { font-size:26px; margin-bottom:8px; }
+  .paper li { margin-bottom:5px; }
   #endStats { font-size:14px; margin-bottom:14px; }
+  .banner { background:#f7e6a2; border:2px dashed #3a2c1a; border-radius:8px;
+    padding:4px 8px; font-size:12px; font-weight:bold; margin:4px 0; }
 </style>
 </head>
 <body>
 <div id="phone">
   <div id="hud">
-    <span class="pill">💰 <span id="hCash">1000</span></span>
-    <span class="pill">📊 <span id="hNW">1000</span>/<span id="hTarget">8000</span></span>
-    <span class="pill">🔁 <span id="hLap">1</span>/20</span>
+    <span class="pill good">💰 <span id="hCash">0</span></span>
+    <span class="pill bad" id="debtPill">🏦 <span id="hDebt">0</span></span>
+    <span class="pill">📅 Month <span id="hMonth">1</span></span>
+    <span class="pill">📊 <span id="hNW">0</span></span>
     <span class="pill" id="muteBtn">🔊</span>
   </div>
-  <div id="boardWrap"><div id="board"><div id="center">
-    <div id="msg">Tap ROLL to start your empire!</div>
-    <div id="diceRow"><div id="dice">🎲</div><button id="rollBtn">ROLL</button></div>
-  </div><div id="token">🎩</div></div></div>
-  <div id="strip"><h4>🏠 Your properties <span id="propCount"></span></h4><div id="props"></div></div>
-
-  <div id="modal"><div id="card"><h3 id="cTitle"></h3><p id="cText"></p><div class="btnrow" id="cBtns"></div></div></div>
-
+  <div id="flow">cashflow <span id="hFlow">+0</span>/mo · rate <span id="hRate">5</span>% · best <span id="hBest">–</span></div>
+  <div id="main">
+    <h4>🏘️ Market <span style="font-weight:normal;font-size:11px">(prices rise over time!)</span></h4>
+    <div class="cards" id="market"></div>
+    <h4>🏠 Your empire <span id="propCount"></span></h4>
+    <div id="portGrid"></div>
+    <div id="bannerBox"></div>
+  </div>
+  <div id="abar">
+    <div id="apRow">⚡ Action points: <span id="apPips"></span></div>
+    <div id="btnRow">
+      <button class="abtn" id="loanBtn">🏦 Loan +$500</button>
+      <button class="abtn" id="repayBtn">💵 Repay $500</button>
+      <button class="abtn" id="endBtn">End Month →</button>
+    </div>
+  </div>
+  <div id="modal"><div id="cardbox"><h3 id="cTitle"></h3><div id="cBody"></div><div class="btnrow" id="cBtns"></div></div></div>
   <div class="overlay" id="titleScr">
     <div class="paper">
       <h1>OOPS<br>ALL LANDLORDS</h1>
-      <div class="sub">a very serious property empire</div>
+      <div class="sub">an endless property tycoon</div>
       <ul>
-        <li>🎲 Roll &amp; move around the block.</li>
-        <li>🏠 Buy properties, build houses.</li>
-        <li>💸 Pass GO to collect rent from tenants.</li>
-        <li>🎯 Reach <b>$8,000</b> net worth in 20 laps.</li>
-        <li>💀 Go broke and it's over.</li>
+        <li>⚡ 3 action points every month.</li>
+        <li>🏘️ Buy, build houses, flip for profit.</li>
+        <li>🏦 Loans are tempting. Interest compounds.</li>
+        <li>🧾 Taxes every 6 months. Events every 3.</li>
+        <li>💀 Survive as long as you can. How many months, mogul?</li>
       </ul>
       <button class="mbtn" id="startBtn">START</button>
       <div class="sub" style="margin:12px 0 0">an OopsAllFalling joint</div>
     </div>
   </div>
-
   <div class="overlay hidden" id="endScr">
     <div class="paper">
-      <div id="endTitle"></div>
+      <div id="endTitle" style="font-size:26px;margin-bottom:8px"></div>
       <p id="endStats"></p>
-      <button class="mbtn" id="againBtn">PLAY AGAIN</button>
+      <button class="mbtn" id="againBtn">TRY AGAIN</button>
     </div>
   </div>
 </div>
 <script>
 // ================= DATA =================
-const TILES = [
-  {t:'go', name:'GO', ico:'🏁'},
-  {t:'prop', name:'Palm St', set:'A', price:120, ico:'🏚️'},
-  {t:'chance', name:'Chance', ico:'❓'},
-  {t:'prop', name:'Palm Ave', set:'A', price:140, ico:'🏚️'},
-  {t:'tax', name:'Income Tax', amount:120, ico:'🧾'},
-  {t:'prop', name:'Palm Blvd', set:'A', price:160, ico:'🏚️'},
-  {t:'prop', name:'Oak St', set:'B', price:200, ico:'🏠'},
-  {t:'chance', name:'Chance', ico:'❓'},
-  {t:'prop', name:'Oak Ave', set:'B', price:220, ico:'🏠'},
-  {t:'prop', name:'Oak Blvd', set:'B', price:240, ico:'🏠'},
-  {t:'audit', name:'IRS Audit', amount:200, ico:'🔍'},
-  {t:'prop', name:'Elm St', set:'C', price:280, ico:'🏡'},
-  {t:'prop', name:'Elm Ave', set:'C', price:300, ico:'🏡'},
-  {t:'chance', name:'Chance', ico:'❓'},
-  {t:'prop', name:'Elm Blvd', set:'C', price:320, ico:'🏡'},
-  {t:'tax', name:'Property Tax', perProp:60, ico:'🏛️'},
-  {t:'prop', name:'Park St', set:'D', price:380, ico:'🏘️'},
-  {t:'prop', name:'Park Ave', set:'D', price:400, ico:'🏘️'},
-  {t:'chance', name:'Chance', ico:'❓'},
-  {t:'prop', name:'Park Blvd', set:'D', price:420, ico:'🏘️'},
-  {t:'lottery', name:'Lottery', amount:200, ico:'🎰'},
-  {t:'reno', name:'Reno Day', ico:'🔨'},
-  {t:'bank', name:'Bank Rent', amount:250, ico:'🏦'},
-  {t:'gift', name:'Inheritance', amount:100, ico:'🎁'},
+const DIST = { Palm:{c:'#f6c9b8'}, Oak:{c:'#c4e3ae'}, Elm:{c:'#bcd6f5'}, Park:{c:'#dcc2f2'} };
+const PROPS = [
+  {name:'Palm St', d:'Palm', price:120, ico:'🏚️'}, {name:'Palm Ave', d:'Palm', price:140, ico:'🏚️'}, {name:'Palm Blvd', d:'Palm', price:160, ico:'🏚️'},
+  {name:'Oak St', d:'Oak', price:220, ico:'🏠'}, {name:'Oak Ave', d:'Oak', price:240, ico:'🏠'}, {name:'Oak Blvd', d:'Oak', price:260, ico:'🏠'},
+  {name:'Elm St', d:'Elm', price:320, ico:'🏡'}, {name:'Elm Ave', d:'Elm', price:340, ico:'🏡'}, {name:'Elm Blvd', d:'Elm', price:360, ico:'🏡'},
+  {name:'Park St', d:'Park', price:460, ico:'🏘️'}, {name:'Park Ave', d:'Park', price:500, ico:'🏘️'}, {name:'Park Blvd', d:'Park', price:560, ico:'🏘️'},
 ];
-const SETS = { A:[1,3,5], B:[6,8,9], C:[11,12,14], D:[16,17,19] };
-const TARGET = 8000, MAXLAPS = 20, SALARY = 250;
-
-const CHANCE = [
-  {txt:'Roof repairs! Pay $80 per property you own.', fx:s=>{ const n=Object.keys(s.owned).length; s.cash-=80*n; return n? `Paid $${80*n}. Ouch.`:'No properties — dodged it!'; }},
-  {txt:'Rent surge! Double rent next time you pass GO.', fx:s=>{ s.rentBoost=true; return 'Tenants will pay double!'; }},
-  {txt:'Tax rebate! Collect $250.', fx:s=>{ s.cash+=250; return '+$250!'; }},
-  {txt:'Plumbing disaster! Pay $150.', fx:s=>{ s.cash-=150; return '-$150. Call a plumber.'; }},
-  {txt:'Good tenants! Collect $100 per property.', fx:s=>{ const n=Object.keys(s.owned).length; s.cash+=100*n; return n? `+$${100*n}!`:'No properties yet…'; }},
-  {txt:'Lucky day! Move forward 3 tiles.', fx:s=>{ s.bonusMove=3; return 'Zoom zoom!'; }},
-  {txt:'Lawsuit! Pay $200 in legal fees.', fx:s=>{ s.cash-=200; return '-$200. Lawyers…'; }},
-  {txt:'Inheritance from a distant aunt! Collect $300.', fx:s=>{ s.cash+=300; return '+$300. Thanks, auntie!'; }},
-  {txt:'Renovation sale! Build ONE house free.', fx:s=>{ s.freeHouse=true; return 'Pick a property to upgrade!'; }},
-  {txt:'Squatters! Your cheapest property loses a house.', fx:s=>{
-    let cheap=-1,cp=1e9;
-    for(const k in s.owned){ const p=TILES[k].price; if(p<cp && s.owned[k].houses>0){cp=p;cheap=k;} }
-    if(cheap>=0){ s.owned[cheap].houses--; return `${TILES[cheap].name} lost a house!`; }
-    return 'No houses to lose. Phew!'; }},
+const EVENTS = [
+  {t:'Roof collapse!', a:['Pay $120 per property', s=>{const n=nOwned(s); s.cash-=120*n; return n?`Paid $${120*n}.`:'No properties — dodged!';}],
+                          b:['Lose one house somewhere', s=>{ const i=richestHouse(s); if(i<0) return 'No houses to lose. Phew!'; s.owned[i].houses--; return `${PROPS[i].name} lost a house!`;} ]},
+  {t:'Tenant boom!', a:['+50% rent for 3 months', s=>{s.boom=3; return 'Tenants are thrilled!';}],
+                     b:['Instant $400 cash', s=>{s.cash+=400; return '+$400!';}]},
+  {t:'Bank audit!', a:['Pay 10% of cash now', s=>{const f=Math.round(s.cash*0.1); s.cash-=f; return `Paid $${f}.`; }],
+                     b:['Take a forced $500 loan', s=>{s.cash+=500; s.debt+=500; return 'Debt +$500. The bank smiles.';}]},
+  {t:'Renovation craze!', a:['Build one house FREE', s=>{s.freeBuild=true; return 'Pick a property below!';}],
+                           b:['Property values feel +$0… take $250 consolation', s=>{s.cash+=250; return '+$250. Meh.';}]},
+  {t:'Squatters!', a:['Pay them $300 to leave', s=>{s.cash-=300; return '-$300. Gone.';}],
+                   b:['Lose your cheapest property', s=>{const i=cheapest(s); if(i<0) return 'Nothing to lose!'; const v=sellValue(s,i); delete s.owned[i]; s.cash+=v; return `Lost ${PROPS[i].name}, salvaged $${v}.`;} ]},
+  {t:'Market frenzy!', a:['All market prices -20% this month', s=>{s.discount=true; return 'Sale! Sale!';}],
+                       b:['Instant $300, but upkeep +20% forever', s=>{s.cash+=300; s.upkeepMul+=0.2; return '+$300… upkeep stings now.';}]},
+  {t:'Pipe burst!', a:['Pay $200', s=>{s.cash-=200; return '-$200. Call a plumber.';}],
+                    b:['Skip maintenance: -1 house from 2 properties', s=>{let n=0; for(const k in s.owned){ if(n>=2)break; if(s.owned[k].houses>0){s.owned[k].houses--; n++;} } return n?`${n} house(s) crumbled!`:'No houses to crumble!';}]},
+  {t:'Lucky inheritance!', a:['Take $500 cash', s=>{s.cash+=500; return '+$500. Thanks, auntie!';}],
+                           b:['Wipe out $500 of debt', s=>{const w=Math.min(500,s.debt); s.debt-=w; return `Debt -$${w}!`;} ]},
 ];
-
 // ================= STATE =================
 let S;
 function newState(){
-  return { cash:1000, pos:0, lap:1, owned:{}, rentBoost:false, bonusMove:0,
-           freeHouse:false, over:false, moving:false, muted:false };
+  return { cash:1500, debt:0, rate:0.05, month:1, ap:3, owned:{}, market:[],
+           discount:false, boom:0, upkeepMul:1, freeBuild:false, over:false,
+           peak:1500, best:JSON.parse(localStorage.getItem('oal_best')||'null') };
 }
-
+// ================= HELPERS =================
+function nOwned(s){ return Object.keys(s.owned).length; }
+function invested(s,i){ return PROPS[i].price + s.owned[i].houses*houseCost(i); }
+function houseCost(i){ return Math.round(PROPS[i].price*0.5); }
+function sellValue(s,i){ return Math.round(invested(s,i)*0.7); }
+function districtOwned(s,d){ return PROPS.map((p,i)=>p.d===d&&s.owned[i]?i:-1).filter(i=>i>=0); }
+function fullDist(s,d){ return PROPS.every((p,i)=>p.d!==d||s.owned[i]); }
+function rentOf(s,i){
+  const p=PROPS[i], o=s.owned[i];
+  let r=p.price*0.12*(1+0.5*o.houses);
+  if(fullDist(s,p.d)) r*=1.5;
+  if(s.boom>0) r*=1.5;
+  return Math.round(r);
+}
+function upkeepOf(s,i){ return Math.round(PROPS[i].price*0.03*s.upkeepMul*(1+s.month*0.004)); }
+function income(s){ let v=0; for(const k in s.owned) v+=rentOf(s,+k); return v; }
+function expenses(s){ let v=0; for(const k in s.owned) v+=upkeepOf(s,+k); v+=Math.round(s.debt*s.rate); return v; }
+function netWorth(s){ let v=s.cash-s.debt; for(const k in s.owned) v+=invested(s,+k); return Math.round(v); }
+function offerPrice(s,i){ let p=PROPS[i].price*(1+0.02*s.month); if(s.discount) p*=0.8; return Math.round(p); }
+function richestHouse(s){ let bi=-1,bh=0; for(const k in s.owned) if(s.owned[k].houses>bh){bh=s.owned[k].houses;bi=+k;} return bi; }
+function cheapest(s){ let bi=-1,bp=1e9; for(const k in s.owned){ const p=invested(s,+k); if(p<bp){bp=p;bi=+k;} } return bi; }
 // ================= AUDIO =================
 let AC=null;
-function beep(f,d){ if(S.muted) return;
+function beep(f,d){ if(S&&S.muted) return;
   try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)();
     const o=AC.createOscillator(), g=AC.createGain();
-    o.type='triangle'; o.frequency.value=f; g.gain.value=.12;
+    o.type='triangle'; o.frequency.value=f; g.gain.value=.1;
     o.connect(g); g.connect(AC.destination); o.start();
     g.gain.exponentialRampToValueAtTime(.001, AC.currentTime+d);
     o.stop(AC.currentTime+d);
   }catch(e){}
 }
-
-// ================= BOARD =================
-const board=document.getElementById('board'), token=document.getElementById('token');
-const tileEls=[];
-function gridPos(i){
-  if(i<=6) return [1,i+1];
-  if(i<=11) return [i-5,7];
-  if(i<=18) return [7,19-i];
-  return [25-i,1];
-}
-function buildBoard(){
-  TILES.forEach((t,i)=>{
-    const d=document.createElement('div');
-    const [r,c]=gridPos(i);
-    d.style.gridRow=r; d.style.gridColumn=c;
-    let cls='tile ';
-    if(t.t==='prop') cls+='set'+t.set;
-    else if(t.t==='go') cls+='t-go';
-    else if(t.t==='chance') cls+='t-chance';
-    else if(t.t==='tax'||t.t==='audit'||t.t==='bank') cls+='t-tax';
-    else cls+='t-special';
-    d.className=cls;
-    d.innerHTML=`<div class="ico">${t.ico}</div><div class="nm">${t.name}</div>`+
-      (t.price?`<div class="pr">$${t.price}</div>`:'')+
-      `<div class="own"></div><div class="hs"></div>`;
-    board.appendChild(d); tileEls.push(d);
-  });
-  placeToken(0,false);
-}
-function placeToken(i,animate){
-  const [r,c]=gridPos(i);
-  const bw=board.clientWidth, cell=bw/7;
-  token.style.left=((c-1)*cell+cell/2-13)+'px';
-  token.style.top=((r-1)*cell+cell/2-13)+'px';
-  if(animate){ token.classList.remove('hop'); void token.offsetWidth; token.classList.add('hop'); }
-}
-function refreshTiles(){
-  TILES.forEach((t,i)=>{
-    const el=tileEls[i], o=S.owned[i];
-    el.querySelector('.own').textContent = o? '🔵' : (t.t==='prop'?'':'');
-    el.querySelector('.hs').textContent = o&&o.houses? '🏠'.repeat(o.houses):'';
-    el.classList.toggle('ownedA', !!o);
-  });
-  const names=Object.keys(S.owned).map(k=>{
-    const t=TILES[k], o=S.owned[k];
-    return `<span class="chip">${t.ico} ${t.name} $${t.price}${o.houses?' +'+o.houses+'🏠':''}</span>`;
-  });
-  document.getElementById('props').innerHTML = names.join('')||'<span style="color:#8a7a5a">none yet — go buy the block!</span>';
-  document.getElementById('propCount').textContent = names.length? `(${names.length})`:'';
-}
-function netWorth(){
-  let v=S.cash;
-  for(const k in S.owned){ v+=TILES[k].price + S.owned[k].houses*houseCost(+k); }
-  return v;
-}
-function houseCost(i){ return Math.round(TILES[i].price*0.5); }
-function fullSet(set){ return SETS[set].every(i=>S.owned[i]); }
-function rentOf(i){
-  const t=TILES[i], o=S.owned[i];
-  let r=t.price*0.1*(1+0.5*o.houses);
-  if(fullSet(t.set)) r*=2;
-  return Math.round(r);
-}
+// ================= RENDER =================
+const $=id=>document.getElementById(id);
 function hud(){
-  document.getElementById('hCash').textContent=S.cash;
-  document.getElementById('hNW').textContent=netWorth();
-  document.getElementById('hLap').textContent=Math.min(S.lap,MAXLAPS);
+  $('hCash').textContent=S.cash; $('hDebt').textContent=S.debt; $('hMonth').textContent=S.month;
+  $('hNW').textContent=netWorth(S);
+  const inc=income(S), exp=expenses(S);
+  $('hFlow').textContent=(inc-exp>=0?'+':'')+(inc-exp);
+  $('hFlow').style.color=inc-exp>=0?'#2e7d32':'#c62828';
+  $('hRate').textContent=Math.round(S.rate*100);
+  $('hBest').textContent=S.best? `${S.best.months}mo / $${S.best.nw}` : '–';
+  $('apPips').textContent='●'.repeat(S.ap)+'○'.repeat(Math.max(0,3-S.ap));
+  $('loanBtn').disabled=$('repayBtn').disabled=$('endBtn').disabled = S.ap<=0||S.over;
+  document.querySelectorAll('#market .buybtn').forEach(b=>b.disabled=S.ap<=0||S.over);
+  document.querySelectorAll('#portGrid .sbtn').forEach(b=>b.disabled=S.ap<=0||S.over);
 }
-function say(m){ document.getElementById('msg').textContent=m; }
+function renderMarket(){
+  const box=$('market'); box.innerHTML='';
+  if(!S.market.length){ box.innerHTML='<div class="empty">Market empty — every property in town is yours. Build houses!</div>'; return; }
+  S.market.forEach(i=>{
+    const p=PROPS[i], pr=offerPrice(S,i);
+    const d=document.createElement('div'); d.className='mcard';
+    d.style.background=DIST[p.d].c;
+    d.innerHTML=`<div class="ico">${p.ico}</div><div class="nm">${p.name}</div><div class="dt">${p.d} district</div>
+      <div>rent ~$${Math.round(p.price*0.12)}/mo</div>
+      <button class="buybtn">Buy $${pr}</button>`;
+    d.querySelector('button').onclick=()=>{
+      if(S.ap<=0||S.over) return;
+      if(S.cash<pr){ toast('Not enough cash!'); return; }
+      S.cash-=pr; S.ap--; S.owned[i]={houses:0};
+      S.market=S.market.filter(x=>x!==i);
+      beep(700,.2); banner(`🎉 Bought ${p.name}!`);
+      afterAction();
+    };
+    box.appendChild(d);
+  });
+}
+function renderPort(){
+  const box=$('portGrid'); box.innerHTML='';
+  const keys=Object.keys(S.owned).map(Number).sort((a,b)=>PROPS[a].price-PROPS[b].price);
+  $('propCount').textContent=keys.length?`(${keys.length})`:'';
+  if(!keys.length){ box.innerHTML='<div class="empty">No properties yet. Buy something!</div>'; return; }
+  keys.forEach(i=>{
+    const p=PROPS[i], o=S.owned[i];
+    const d=document.createElement('div'); d.className='pcard';
+    d.style.background=DIST[p.d].c;
+    d.innerHTML=`<div class="nm">${p.ico} ${p.name}</div>
+      ${fullDist(S,p.d)?'<div class="mono">👑</div>':''}
+      <div>🏠${o.houses} · rent $${rentOf(S,i)}/mo</div>
+      <div class="row"><button class="sbtn build">+house $${houseCost(i)}</button><button class="sbtn sell">sell $${sellValue(S,i)}</button></div>`;
+    const [bb,sb]=d.querySelectorAll('button');
+    bb.disabled=o.houses>=3;
+    bb.onclick=()=>{
+      if(S.ap<=0||S.over||o.houses>=3) return;
+      const c=S.freeBuild?0:houseCost(i);
+      if(S.cash<c){ toast('Not enough cash!'); return; }
+      S.cash-=c; o.houses++; S.ap--; if(S.freeBuild){S.freeBuild=false;}
+      beep(750,.2); afterAction();
+    };
+    sb.onclick=()=>{
+      if(S.ap<=0||S.over) return;
+      const v=sellValue(S,i); delete S.owned[i]; S.cash+=v; S.ap--;
+      beep(400,.2); banner(`💸 Sold ${p.name} for $${v}.`);
+      afterAction();
+    };
+    box.appendChild(d);
+  });
+}
+function banner(t){
+  const b=document.createElement('div'); b.className='banner'; b.textContent=t;
+  $('bannerBox').prepend(b); setTimeout(()=>b.remove(),4000);
+}
+function toast(t){ banner('⚠️ '+t); }
+// ================= ACTIONS =================
+function afterAction(){ hud(); renderMarket(); renderPort(); }
+function drawMarket(){
+  const avail=PROPS.map((p,i)=>i).filter(i=>!S.owned[i]&&!S.market.includes(i));
+  S.market=[];
+  for(let n=0;n<3&&avail.length;n++){ S.market.push(avail.splice(Math.floor(Math.random()*avail.length),1)[0]); }
+}
+function newMonth(){
+  S.ap=3; S.discount=false; drawMarket();
+  hud(); renderMarket(); renderPort();
+}
+$('loanBtn').onclick=()=>{ if(S.ap<=0||S.over)return; S.cash+=500; S.debt+=500; S.ap--; beep(300,.2); banner('🏦 +$500 cash, +$500 debt.'); afterAction(); };
+$('repayBtn').onclick=()=>{
+  if(S.ap<=0||S.over||S.debt<=0){ if(S.debt<=0) toast('No debt!'); return; }
+  const w=Math.min(500,S.debt,S.cash); S.cash-=w; S.debt-=w; S.ap--;
+  beep(600,.2); banner(`💵 Repaid $${w}.`); afterAction();
+};
+$('endBtn').onclick=()=>{
+  if(S.ap<=0||S.over){ if(S.ap>0) return; }
+  if(S.ap>0 && !confirm(`End month with ${S.ap} action point(s) left?`)) return;
+  resolveMonth();
+};
 // ================= MODAL =================
-const modal=document.getElementById('modal');
-function card(title,text,btns){
-  document.getElementById('cTitle').textContent=title;
-  document.getElementById('cText').textContent=text;
-  const row=document.getElementById('cBtns'); row.innerHTML='';
+const modal=$('modal');
+function showCard(title, bodyHTML, btns){
+  $('cTitle').textContent=title; $('cBody').innerHTML=bodyHTML;
+  const row=$('cBtns'); row.innerHTML='';
   btns.forEach(b=>{
     const btn=document.createElement('button');
     btn.className='mbtn '+(b.cls||''); btn.textContent=b.label;
@@ -321,149 +332,69 @@ function card(title,text,btns){
   });
   modal.classList.add('show');
 }
-
-// ================= FLOW =================
-const diceEl=document.getElementById('dice'), rollBtn=document.getElementById('rollBtn');
-rollBtn.onclick=()=>{
-  if(S.over||S.moving) return;
-  S.moving=true; rollBtn.disabled=true;
-  diceEl.classList.add('rolling'); beep(300,.15);
-  let n=0; const iv=setInterval(()=>{
-    diceEl.textContent='⚀⚁⚂⚃⚄⚅'[Math.floor(Math.random()*6)]; beep(200+Math.random()*300,.06);
-    if(++n>6){ clearInterval(iv); diceEl.classList.remove('rolling'); doMove(1+Math.floor(Math.random()*6)); }
-  },90);
-};
-function doMove(steps){
-  diceEl.textContent='⚀⚁⚂⚃⚄⚅'[steps-1];
-  say(`Rolled ${steps}!`);
-  let s=0;
-  const iv=setInterval(()=>{
-    S.pos=(S.pos+1)%TILES.length; beep(400+s*40,.08);
-    if(S.pos===0) passGo();
-    placeToken(S.pos,true);
-    if(++s>=steps){ clearInterval(iv); setTimeout(resolveTile,350); }
-  },200);
-}
-function passGo(){
-  S.lap++;
-  let income=SALARY, parts=[`salary $${SALARY}`];
-  for(const k in S.owned){
-    let r=rentOf(+k);
-    if(S.rentBoost) r*=2;
-    income+=r; parts.push(`${TILES[k].name} $${r}`);
-  }
-  S.cash+=income;
-  const msg=`Passed GO! Collected $${income} (${parts.join(', ')}).`;
-  S.rentBoost=false;
-  hud(); refreshTiles(); say(msg);
-  if(S.lap>MAXLAPS) return endGame(false,'Out of laps! The bank outlasted you.');
-}
-function resolveTile(){
-  const t=TILES[S.pos];
-  if(S.over) return;
-  if(t.t==='go'){ endTurn(`Landed on GO. Lap ${Math.min(S.lap,MAXLAPS)}/${MAXLAPS}.`); return; }
-  if(t.t==='prop') return resolveProp(S.pos);
-  if(t.t==='tax'){
-    const amt=t.perProp? t.perProp*Object.keys(S.owned).length : t.amount;
-    S.cash-=amt; beep(150,.3);
-    card('🧾 '+t.name, amt? `Paid $${amt}.`:'No properties — no tax!',
-      [{label:'OK', fn:endTurn}]); return;
-  }
-  if(t.t==='audit'){ S.cash-=t.amount; beep(150,.3);
-    card('🔍 IRS Audit',`The taxman cometh: -$${t.amount}.`,[{label:'Ouch', fn:endTurn}]); return; }
-  if(t.t==='bank'){ S.cash-=t.amount; beep(150,.3);
-    card('🏦 Bank Rent',`Prime location… owned by the bank. -$${t.amount}.`,[{label:'Fine', fn:endTurn}]); return; }
-  if(t.t==='lottery'||t.t==='gift'){ S.cash+=t.amount; beep(600,.2);
-    card(t.ico+' '+t.name,`+$${t.amount}!`,[{label:'Nice', fn:endTurn}]); return; }
-  if(t.t==='reno'){
-    const keys=Object.keys(S.owned).filter(k=>S.owned[k].houses<3);
-    if(!keys.length){ card('🔨 Reno Day','No upgradable properties.',[{label:'OK', fn:endTurn}]); return; }
-    card('🔨 Reno Day','Half-price house! Pick a property:',
-      keys.map(k=>({label:`${TILES[k].name} ($${Math.round(houseCost(+k)/2)})`, cls:'alt',
-        fn:()=>{ S.owned[k].houses++; say(`Built a house on ${TILES[k].name}!`); beep(700,.2); afterAction(); }}))
-      .concat([{label:'Skip', cls:'no', fn:endTurn}]));
-    return;
-  }
-  if(t.t==='chance'){
-    const c=CHANCE[Math.floor(Math.random()*CHANCE.length)];
-    beep(500,.15);
-    card('❓ Chance', c.txt, [{label:'Reveal', fn:()=>{
-      const r=c.fx(S); hud(); refreshTiles(); beep(650,.2);
-      if(S.freeHouse){ S.freeHouse=false; return freeHousePick(); }
-      if(S.bonusMove){ const b=S.bonusMove; S.bonusMove=0; S.moving=false; rollBtn.disabled=false; doMoveKeep(b); return; }
-      card('❓ Chance', r, [{label:'OK', fn:endTurn}]);
+// ================= MONTH RESOLUTION =================
+function resolveMonth(){
+  const inc=income(S), up=Object.keys(S.owned).reduce((a,k)=>a+upkeepOf(S,+k),0);
+  const interest=Math.round(S.debt*S.rate);
+  let tax=0; const lines=[];
+  lines.push(['Rental income', '+$'+inc]);
+  lines.push(['Upkeep', '-$'+up]);
+  if(S.debt>0) lines.push([`Loan interest (${Math.round(S.rate*100)}%)`, '-$'+interest]);
+  if(S.month%6===0){ tax=Math.round(netWorth(S)*0.05); lines.push(['Property tax (5% NW)', '-$'+tax]); }
+  S.cash+=inc-up-interest-tax;
+  if(S.boom>0) S.boom--;
+  const nw=netWorth(S); if(nw>S.peak) S.peak=nw;
+  const tot=inc-up-interest-tax;
+  lines.push(['<span class="tot">Month total</span>', `<span class="tot">${tot>=0?'+':''}$${tot}</span>`]);
+  lines.push(['Cash', '$'+S.cash]);
+  beep(tot>=0?650:180,.3);
+  const notes=[];
+  if(S.month%12===0){ S.rate+=0.01; notes.push(`📈 The bank raised rates to ${Math.round(S.rate*100)}%!`); }
+  [12,24,36,48,60].forEach(m=>{ if(S.month===m) notes.push(`🎉 ${m} months! True mogul material.`); });
+  [10000,25000,50000,100000].forEach(v=>{ if(nw>=v && !S['ms'+v]){ S['ms'+v]=true; notes.push(`💰 Net worth passed $${v.toLocaleString()}!`); } });
+  showCard(`📅 Month ${S.month} report`,
+    `<div class="lines">${lines.map(l=>`<div><span>${l[0]}</span><span>${l[1]}</span></div>`).join('')}</div>`+
+    (notes.length?`<p>${notes.join('<br>')}</p>`:''),
+    [{label:'Continue', fn:()=>{
+      if(S.cash<0) return gameOver();
+      S.month++;
+      if(S.month%3===0) return doEvent();
+      newMonth();
     }}]);
-    return;
+}
+function doEvent(){
+  const e=EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  beep(500,.2);
+  showCard('🎲 '+e.t, '',
+    [{label:e.a[0], cls:'alt', fn:()=>{ const r=e.a[1](S); eventResult(e.t,r); }},
+     {label:e.b[0], cls:'alt', fn:()=>{ const r=e.b[1](S); eventResult(e.t,r); }}]);
+}
+function eventResult(t,r){
+  hud(); renderMarket(); renderPort();
+  showCard('🎲 '+t, `<p>${r}</p>`, [{label:'OK', fn:()=>{
+    if(S.freeBuild){ /* handled via build buttons */ }
+    if(S.cash<0) return gameOver();
+    newMonth();
+  }}]);
+}
+function gameOver(){
+  S.over=true;
+  const rec={months:S.month, nw:S.peak};
+  if(!S.best||S.month>S.best.months||(S.month===S.best.months&&S.peak>S.best.nw)){
+    localStorage.setItem('oal_best', JSON.stringify(rec)); S.best=rec;
   }
-}
-function doMoveKeep(steps){
-  S.moving=true; rollBtn.disabled=true;
-  let s=0;
-  const iv=setInterval(()=>{
-    S.pos=(S.pos+1)%TILES.length; beep(400+s*40,.08);
-    if(S.pos===0) passGo();
-    placeToken(S.pos,true);
-    if(++s>=steps){ clearInterval(iv); setTimeout(resolveTile,350); }
-  },200);
-}
-function freeHousePick(){
-  const keys=Object.keys(S.owned).filter(k=>S.owned[k].houses<3);
-  if(!keys.length){ card('🎁 Free House','No upgradable properties.',[{label:'OK', fn:endTurn}]); return; }
-  card('🎁 Free House','Pick a property:',
-    keys.map(k=>({label:TILES[k].name, cls:'alt', fn:()=>{ S.owned[k].houses++; beep(700,.2); afterAction(); }})));
-}
-function resolveProp(i){
-  const t=TILES[i], o=S.owned[i];
-  if(!o){
-    if(S.cash<t.price){ card(t.ico+' '+t.name,`Costs $${t.price} — you can't afford it!`,[{label:'Sad', fn:endTurn}]); return; }
-    card(t.ico+' '+t.name,`For sale: $${t.price}. Rent when passing GO: $${Math.round(t.price*0.1)}${fullSet(t.set)?' (×2 full set!)':''}.`,
-      [{label:`Buy $${t.price}`, fn:()=>{ S.cash-=t.price; S.owned[i]={houses:0}; beep(700,.25); say(`Bought ${t.name}!`); afterAction(); }},
-       {label:'Skip', cls:'no', fn:endTurn}]);
-    return;
-  }
-  if(o.houses>=3){ endTurn(`${t.name} is maxed out!`); return; }
-  const cost=houseCost(i);
-  card(t.ico+' '+t.name,`You own it. Build a house for $${cost}? (rent → $${Math.round(t.price*0.1*(1+0.5*(o.houses+1))*(fullSet(t.set)?2:1))})`,
-    [{label:`Build $${cost}`, fn:()=>{
-        if(S.cash<cost){ card('😢','Not enough cash!',[{label:'OK', fn:endTurn}]); return; }
-        S.cash-=cost; o.houses++; beep(700,.25); say(`House built on ${t.name}!`); afterAction(); }},
-     {label:'Skip', cls:'no', fn:endTurn}]);
-}
-function afterAction(){
-  hud(); refreshTiles();
-  if(checkEnd()) return;
-  endTurn();
-}
-function checkEnd(){
-  if(S.cash<0){ endGame(false,'Bankrupt! The bank repossesses your top hat.'); return true; }
-  if(netWorth()>=TARGET){ endGame(true,`Net worth $${netWorth()} — property mogul!`); return true; }
-  return false;
-}
-function endTurn(msg){
-  if(msg) say(msg);
-  hud(); refreshTiles();
-  if(checkEnd()) return;
-  S.moving=false; rollBtn.disabled=false;
-}
-function endGame(win,msg){
-  S.over=true; S.moving=false; rollBtn.disabled=true;
+  beep(140,.6);
   modal.classList.remove('show');
-  beep(win?880:140,.5);
-  document.getElementById('endTitle').textContent = win? '🏆 MOGUL!' : '💸 GAME OVER';
-  document.getElementById('endStats').innerHTML =
-    `${msg}<br>Net worth: $${netWorth()} / $${TARGET}<br>Laps: ${Math.min(S.lap,MAXLAPS)}/${MAXLAPS} · Properties: ${Object.keys(S.owned).length}`;
-  document.getElementById('endScr').classList.remove('hidden');
+  $('endTitle').textContent='💸 BANKRUPT';
+  $('endStats').innerHTML=`The bank repossesses your top hat.<br><br>Survived <b>${S.month}</b> months<br>Peak net worth <b>$${S.peak}</b><br>Properties at the end: <b>${nOwned(S)}</b><br><br>Best: ${S.best.months} months / $${S.best.nw}`;
+  $('endScr').classList.remove('hidden');
 }
-
 // ================= INIT =================
-document.getElementById('muteBtn').onclick=e=>{ S.muted=!S.muted; e.target.textContent=S.muted?'🔇':'🔊'; };
-document.getElementById('startBtn').onclick=()=>{
-  document.getElementById('titleScr').classList.add('hidden'); beep(600,.2);
-};
-document.getElementById('againBtn').onclick=()=>location.reload();
+$('muteBtn').onclick=e=>{ S.muted=!S.muted; e.target.textContent=S.muted?'🔇':'🔊'; };
+$('startBtn').onclick=()=>{ $('titleScr').classList.add('hidden'); beep(600,.2); newMonth(); };
+$('againBtn').onclick=()=>location.reload();
 S=newState();
-buildBoard(); refreshTiles(); hud();
-window.addEventListener('resize',()=>placeToken(S.pos,false));
+hud(); renderMarket(); renderPort();
 </script>
 </body>
 </html>
