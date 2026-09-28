@@ -442,7 +442,7 @@ function addUnit(team,type,x,y){
   const u={id:Math.random(),team,type,x:clamp(x,12,W-12),y:clamp(y,12,H-12),
     hp:st.hp,maxhp:st.hp,sp:st.sp,dmg:st.dmg,rng:st.rng,cd:st.cd,cdT:0,
     state:'idle',tx:x,ty:y,target:null,res:null,carry:null,phase:R(0,6),face:team===0?-Math.PI/2:Math.PI/2,
-    atkT:0,gathT:0,dead:false};
+    atkT:0,gathT:0,dead:false,isUnit:true,flashT:0};
   G.units.push(u); G.teams[team].pop+=st.pop;
   return u;
 }
@@ -450,7 +450,7 @@ function addBld(team,type,x,y){
   const st=STATS[type];
   const dims={tc:[72,64],house:[40,36],barracks:[58,50],tower:[34,54]}[type];
   const b={id:Math.random(),team,type,x:clamp(x,dims[0]/2,W-dims[0]/2),y:clamp(y,dims[1]/2,H-dims[1]/2),
-    w:dims[0],h:dims[1],hp:st.hp,maxhp:st.hp,buildT:0,buildMax:0,queue:[],qT:0,cdT:0,dead:false,rally:null};
+    w:dims[0],h:dims[1],hp:st.hp,maxhp:st.hp,buildT:0,buildMax:0,queue:[],qT:0,cdT:0,dead:false,rally:null,isUnit:false,flashT:0};
   if(type==='house') G.teams[team].cap+=5;
   G.blds.push(b); return b;
 }
@@ -471,7 +471,9 @@ function trainUnit(team,type){
   const home=G.blds.find(b=>!b.dead&&b.team===team&&b.buildT<=0&&
     (type==='vill'?b.type==='tc':b.type==='barracks'));
   if(!home) return false;
-  if(T.wood<c.w||T.gold<c.g||T.pop+STATS[type].pop>T.cap) return false;
+  let queued=0;
+  for(const b of G.blds) if(b.team===team&&!b.dead) queued+=b.queue.length;
+  if(T.wood<c.w||T.gold<c.g||T.pop+queued+STATS[type].pop>T.cap) return false;
   if(type==='knight'&&T.age<1) return false;
   T.wood-=c.w; T.gold-=c.g;
   home.queue.push(type); sfx.train();
@@ -500,7 +502,7 @@ function updateGather(u,dt){
   if(!u.res||u.res.amt<=0){ u.res=nearestRes(u,u.carry==='g'?'g':'w')||nearestRes(u,'w')||nearestRes(u,'g');
     if(!u.res){ u.state='idle'; u.carry=null; return; } }
   const r=u.res, d=dist(u,r);
-  if(d>20){ moveToward(u,r.x,r.y,dt,20); u.state='move'; return; }
+  if(d>20){ moveToward(u,r.x,r.y,dt,20); return; } // stay in 'gather' while approaching
   u.state='gather'; u.face=angTo(u,r);
   u.gathT+=dt;
   if(u.gathT>=1){
