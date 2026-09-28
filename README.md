@@ -20,6 +20,12 @@ Sixteen labeled objects. Four homes: bookshelf, wardrobe, fridge, trash. Drag ea
 
 ![Tidy Rush gameplay](tidy-rush/screenshot.png)
 
+### 🗼 Oops All Towers — a cut-paper tower defense
+
+The sky is falling and it's all junk: crates, bowling balls, pianos, safes, anvils. Five ridiculous towers (Slingshot, Magnet, Umbrella, Fan, Mitt), 20 waves plus endless mode, Storm Surge every 5th endless wave, and a Hard Mode for the brave.
+
+- 🎮 Play it: https://oopsallfalling.itch.io/oops-all-towers
+
 ## What's next
 
 More tiny games. Probably more falling.
