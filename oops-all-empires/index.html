@@ -74,6 +74,7 @@
     <span id="muteBtn">🔊</span>
   </div>
   <div id="wrap"><canvas id="cv"></canvas>
+    <button id="placeCancel" style="display:none;position:absolute;top:8px;right:8px;z-index:16;font-family:inherit;font-size:13px;font-weight:bold;color:#f5e9d0;background:#a03d2a;border:2px solid #f5e9d0;border-radius:10px;padding:6px 12px;cursor:pointer;">✕ 取消建造</button>
     <div id="buildmenu"><h4>🏗️ Build <span style="font-size:11px;color:#6a5a3a">(tap map to place)</span></h4>
       <div class="brow">
         <button class="bbtn" data-b="house">🏠 House<small>40🪵 · +5 pop</small></button>
@@ -388,6 +389,12 @@ function drawBuilding(c,b,t){
     c.beginPath(); c.moveTo(x+w/2,y-16); c.lineTo(x+w/2+16,y-12+wv); c.lineTo(x+w/2,y-8); c.closePath(); c.fill();
   }
   c.restore();
+  if(b.flashT>0){
+    c.globalAlpha=Math.min(.55,b.flashT*4);
+    c.fillStyle='#ff5a3c';
+    c.fillRect(x,y,w,h);
+    c.globalAlpha=1;
+  }
   // team ring
   c.strokeStyle=tc; c.lineWidth=2.5; c.globalAlpha=.85;
   c.beginPath(); c.ellipse(b.x,b.y+b.h/2+3,b.w*.58,8,0,0,7); c.stroke();
@@ -551,10 +558,18 @@ function nearestEnemy(u,includeBld=true){
 }
 function dealDamage(att,tgt){
   let dmg=att.dmg*ageMult(att.team);
-  if(att.type==='tower') dmg=att.dmg*ageMult(att.team);
   tgt.hp-=dmg;
-  burst(tgt.x+R(-6,6),tgt.y-8,'#ffd94a',3,50);
-  if(Math.random()<.25) sfx.hit();
+  tgt.flashT=0.18;
+  burst(tgt.x+R(-6,6),tgt.y-10,'#ffd94a',6,70);
+  burst(tgt.x,tgt.y-12,'#ffffff',3,90);
+  if(Math.random()<.3) sfx.hit();
+  // villagers panic and flee
+  if(tgt.isUnit&&tgt.type==='vill'&&att.x!==undefined){
+    const a=angTo(att,tgt);
+    tgt.state='move'; tgt.target=null; tgt.res=null; tgt.carry=null;
+    tgt.tx=clamp(tgt.x+Math.cos(a)*90,12,W-12);
+    tgt.ty=clamp(tgt.y+Math.sin(a)*90,12,H-12);
+  }
   if(tgt.hp<=0&&!tgt.dead) kill(tgt,att.team);
 }
 function kill(e,byTeam){
@@ -570,6 +585,7 @@ function kill(e,byTeam){
     burst(e.x,e.y,'#8a6a3f',22,110); burst(e.x,e.y,'#5a5a5a',12,60);
     sfx.boom();
     addFloat(e.x,e.y-30,'💥','#a03d2a');
+    if(byTeam===0) G.stats.kills++;
     if(e.type==='house') G.teams[e.team].cap-=5;
     if(G.sel===e) G.sel=null;
     if(e.type==='tc') endGame(e.team===1);
@@ -676,21 +692,36 @@ function tagEntities(){
   for(const b of G.blds) b.isUnit=false;
 }
 // ================= ENEMY AI =================
-const AI={next:0,waveT:210};
+const AI={next:0,ecoT:0,waveT:210};
+function aiEconomy(){
+  // make sure the AI mines enough gold for its army
+  const wantGold=G.blds.some(b=>b.team===1&&!b.dead&&b.type==='barracks')?3:1;
+  const vills=G.units.filter(u=>u.team===1&&!u.dead&&u.type==='vill');
+  let gold=vills.filter(u=>u.res&&u.res.type==='g'&&u.res.amt>0).length;
+  for(const u of vills){
+    if(gold>=wantGold) break;
+    if(!u.res||u.res.type!=='g'||u.res.amt<=0){
+      const m=nearestRes(u,'g');
+      if(m){ u.res=m; u.carry='g'; u.state='move'; u.tx=m.x; u.ty=m.y; gold++; }
+    }
+  }
+}
 function aiThink(){
   if(G.t<AI.next||G.over) return; AI.next=G.t+1.5;
+  if(G.t>AI.ecoT){ AI.ecoT=G.t+6; aiEconomy(); }
   const T=G.teams[1];
-  const vills=G.units.filter(u=>u.team===1&&!u.dead&&u.type==='vill').length;
+  const tc=G.blds.find(b=>b.team===1&&!b.dead&&b.type==='tc');
+  const queuedV=tc?tc.queue.filter(q=>q==='vill').length:0;
+  const vills=G.units.filter(u=>u.team===1&&!u.dead&&u.type==='vill').length+queuedV;
   const mil=G.units.filter(u=>u.team===1&&!u.dead&&(u.type==='sold'||u.type==='knight')).length;
-  const hasRax=G.blds.some(b=>b.team===1&&!b.dead&&b.type==='barracks');
-  if(vills<8) trainUnit(1,'vill');
-  if(T.pop+2>=T.cap&&!G.blds.some(b=>b.team===1&&!b.dead&&(b.type==='house'||b.buildT>0))){
+  const rax=G.blds.find(b=>b.team===1&&!b.dead&&b.type==='barracks');
+  const needRax=!rax&&G.t>40;
+  // villagers first, but reserve 170 wood for the barracks
+  if(vills<8&&!(needRax&&T.wood<170)) trainUnit(1,'vill');
+  if(T.pop+2>=T.cap&&!G.blds.some(b=>b.team===1&&!b.dead&&b.type==='house')){
     const s=findSpot(1,'house'); if(s) startBuild(1,'house',s[0],s[1]); }
-  if(G.t>45&&!hasRax){ const s=findSpot(1,'barracks'); if(s) startBuild(1,'barracks',s[0],s[1]); }
-  if(hasRax){
-    const rax=G.blds.find(b=>b.team===1&&!b.dead&&b.type==='barracks');
-    if(rax&&rax.queue.length<2) trainUnit(1,T.age>=1?'knight':'sold');
-  }
+  if(needRax){ const s=findSpot(1,'barracks'); if(s) startBuild(1,'barracks',s[0],s[1]); }
+  if(rax&&rax.buildT<=0&&rax.queue.length<2) trainUnit(1,T.age>=1?'knight':'sold');
   if(T.age===0&&G.t>150&&T.wood>=300&&T.gold>=300) researchAge(1);
   if(T.age===1&&G.t>420&&T.wood>=550&&T.gold>=550) researchAge(1);
   if(T.age>=1&&!G.blds.some(b=>b.team===1&&!b.dead&&b.type==='tower')){
@@ -799,14 +830,14 @@ cv.addEventListener('pointerdown',e=>{
   if(!G||G.over) return;
   const p=evtPos(e); G.mouse=p;
   if(G.placeMode){
-    if(startBuild(0,G.placeMode,p.x,p.y)){ G.placeMode=null; setHint('點選單位，再點目的地。閒置工人會自動找活幹。'); }
+    if(startBuild(0,G.placeMode,p.x,p.y)){ setPlaceMode(null); setHint('點選單位，再點目的地。閒置工人會自動找活幹。'); }
     else setHint('這裡不能蓋，換個位置。');
     return;
   }
-  // select own unit
-  let su=null,sd=16;
+  // select own unit (generous hitbox around body)
+  let su=null,sd=22;
   for(const u of G.units){ if(u.team!==0||u.dead) continue;
-    const d=Math.hypot(u.x-p.x,u.y-p.y); if(d<sd){sd=d;su=u;} }
+    const d=Math.hypot(u.x-p.x,(u.y-10)-p.y); if(d<sd){sd=d;su=u;} }
   // or own building
   let sb=null;
   if(!su) for(const b of G.blds){ if(b.team!==0||b.dead) continue;
@@ -863,14 +894,23 @@ function attackAll(){
 $('btnVill').onclick=()=>{ if(!trainUnit(0,'vill')) setHint('需要市政中心或資源不足。'); };
 $('btnSold').onclick=()=>{ if(!trainUnit(0,'sold')) setHint('需要兵營，30🪵+40🪙。'); };
 $('btnKnight').onclick=()=>{ if(!trainUnit(0,'knight')) setHint('買房時代解鎖，50🪵+80🪙。'); };
-$('btnBuild').onclick=()=>{ $('buildmenu').classList.add('show'); };
+$('btnBuild').onclick=()=>{
+  if(G.placeMode){ setPlaceMode(null); setHint('已取消建造。'); return; }
+  $('buildmenu').classList.add('show');
+};
 $('buildCancel').onclick=()=>{ $('buildmenu').classList.remove('show'); };
+function setPlaceMode(t){
+  $('placeCancel').style.display=t?'block':'none';
+  G.placeMode=t;
+}
 document.querySelectorAll('.bbtn[data-b]').forEach(b=>b.onclick=()=>{
-  const t=b.dataset.b;
-  if(t==='tower'&&G.teams[0].age<1){ setHint('高塔要買房時代才解鎖。'); return; }
-  G.placeMode=t; $('buildmenu').classList.remove('show');
+  const t=b.dataset.b, T=G.teams[0], c=COST[t];
+  if(t==='tower'&&T.age<1){ setHint('高塔要買房時代才解鎖。'); return; }
+  if(T.wood<c.w||T.gold<c.g){ setHint('資源不足，蓋不起。'); return; }
+  setPlaceMode(t); $('buildmenu').classList.remove('show');
   setHint('點地圖選擇建造位置。');
 });
+$('placeCancel').onclick=()=>{ setPlaceMode(null); setHint('已取消建造。'); };
 $('btnAge').onclick=()=>{
   if(researchAge(0)) banner('⬆️ 升級中…');
   else setHint('資源不足或已在最高時代。');
@@ -926,6 +966,8 @@ function loop(ts){
     G.particles=G.particles.filter(p=>p.t<p.life);
     for(const f of G.floats) f.t+=dt;
     G.floats=G.floats.filter(f=>f.t<f.life);
+    for(const e of G.units){ if(e.flashT>0) e.flashT-=dt; }
+    for(const e of G.blds){ if(e.flashT>0) e.flashT-=dt; }
     if(G.units.length>240) G.units=G.units.filter(u=>!u.dead);
     if(G.blds.length>60) G.blds=G.blds.filter(b=>!b.dead);
   }
