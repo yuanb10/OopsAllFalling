@@ -306,7 +306,7 @@ function drawMarket(){
   for(let n=0;n<3&&avail.length;n++){ S.market.push(avail.splice(Math.floor(Math.random()*avail.length),1)[0]); }
 }
 function newMonth(){
-  S.ap=3; S.discount=false; drawMarket();
+  S.ap=3; drawMarket();
   hud(); renderMarket(); renderPort();
 }
 $('loanBtn').onclick=()=>{ if(S.ap<=0||S.over)return; S.cash+=500; S.debt+=500; S.ap--; beep(300,.2); banner('🏦 +$500 cash, +$500 debt.'); afterAction(); };
@@ -347,6 +347,7 @@ function resolveMonth(){
   if(S.debt>0) lines.push([`Loan interest (${Math.round(S.rate*100)}%)`, '-$'+interest]);
   if(S.month%6===0){ tax=Math.round(netWorth(S)*0.05); lines.push(['Property tax (5% NW)', '-$'+tax]); }
   S.cash+=inc-up-interest-tax;
+  S.discount=false; /* event discounts expire when the month they applied to ends */
   if(S.boom>0) S.boom--;
   const nw=netWorth(S); if(nw>S.peak) S.peak=nw;
   const tot=inc-up-interest-tax;
