@@ -197,7 +197,7 @@ function newState(){
 function nOwned(s){ return Object.keys(s.owned).length; }
 function invested(s,i){ return PROPS[i].price + s.owned[i].houses*houseCost(i); }
 function houseCost(i){ return Math.round(PROPS[i].price*0.5); }
-function sellValue(s,i){ return Math.round(invested(s,i)*0.7); }
+function sellValue(s,i){ const o=s.owned[i]; const appr=PROPS[i].price*(1+0.02*(s.month-o.bought)); return Math.round((appr+o.houses*houseCost(i))*0.7); }
 function districtOwned(s,d){ return PROPS.map((p,i)=>p.d===d&&s.owned[i]?i:-1).filter(i=>i>=0); }
 function fullDist(s,d){ return PROPS.every((p,i)=>p.d!==d||s.owned[i]); }
 function rentOf(s,i){
@@ -236,7 +236,8 @@ function hud(){
   $('hRate').textContent=Math.round(S.rate*100);
   $('hBest').textContent=S.best? `${S.best.months}mo / $${S.best.nw}` : '–';
   $('apPips').textContent='●'.repeat(S.ap)+'○'.repeat(Math.max(0,3-S.ap));
-  $('loanBtn').disabled=$('repayBtn').disabled=$('endBtn').disabled = S.ap<=0||S.over;
+  $('loanBtn').disabled=$('repayBtn').disabled = S.ap<=0||S.over;
+  $('endBtn').disabled = S.over;
   document.querySelectorAll('#market .buybtn').forEach(b=>b.disabled=S.ap<=0||S.over);
   document.querySelectorAll('#portGrid .sbtn').forEach(b=>b.disabled=S.ap<=0||S.over);
 }
@@ -253,7 +254,7 @@ function renderMarket(){
     d.querySelector('button').onclick=()=>{
       if(S.ap<=0||S.over) return;
       if(S.cash<pr){ toast('Not enough cash!'); return; }
-      S.cash-=pr; S.ap--; S.owned[i]={houses:0};
+      S.cash-=pr; S.ap--; S.owned[i]={houses:0,bought:S.month};
       S.market=S.market.filter(x=>x!==i);
       beep(700,.2); banner(`🎉 Bought ${p.name}!`);
       afterAction();
@@ -315,8 +316,12 @@ $('repayBtn').onclick=()=>{
   beep(600,.2); banner(`💵 Repaid $${w}.`); afterAction();
 };
 $('endBtn').onclick=()=>{
-  if(S.ap<=0||S.over){ if(S.ap>0) return; }
-  if(S.ap>0 && !confirm(`End month with ${S.ap} action point(s) left?`)) return;
+  if(S.over) return;
+  if(S.ap>0){
+    showCard('End month?', `<p>You still have ${S.ap} action point${S.ap>1?'s':''} left. End the month anyway?</p>`,
+      [{label:'End month', fn:resolveMonth},{label:'Keep playing', cls:'alt'}]);
+    return;
+  }
   resolveMonth();
 };
 // ================= MODAL =================
