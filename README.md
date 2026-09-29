@@ -26,6 +26,8 @@ The sky is falling and it's all junk: crates, bowling balls, pianos, safes, anvi
 
 - 🎮 Play it: https://oopsallfalling.itch.io/oops-all-towers
 
+![Oops All Towers gameplay](oops-all-towers/screenshot.png)
+
 ## What's next
 
 More tiny games. Probably more falling.
