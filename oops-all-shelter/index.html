@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Oops All Shelter — 畫線救狗狗</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; background:#3a2c1e; overflow:hidden;
+    font-family:"PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    touch-action:none; user-select:none; -webkit-user-select:none; }
+  #wrap { position:relative; width:420px; max-width:100vw; height:760px; max-height:100vh; }
+  canvas { display:block; width:100%; height:100%; border-radius:18px;
+    box-shadow:0 12px 40px rgba(0,0,0,.5); touch-action:none; }
+  .hud { position:absolute; top:10px; left:12px; right:12px; display:flex; gap:8px;
+    align-items:center; pointer-events:none; z-index:5; }
+  .pill { background:rgba(255,251,240,.94); border:3px solid #5b4632; border-radius:999px;
+    padding:4px 12px; font-weight:800; color:#5b4632; font-size:15px;
+    box-shadow:2px 3px 0 rgba(0,0,0,.25); white-space:nowrap; }
+  #inkbar { flex:1; height:22px; background:rgba(255,251,240,.94); border:3px solid #5b4632;
+    border-radius:999px; overflow:hidden; box-shadow:2px 3px 0 rgba(0,0,0,.25); }
+  #inkfill { height:100%; width:100%; border-radius:999px;
+    background:repeating-linear-gradient(45deg,#e8d9b0,#e8d9b0 8px,#dcc999 8px,#dcc999 16px);
+    transition:width .1s linear; }
+  .overlay { position:absolute; inset:0; z-index:10; display:flex; align-items:center;
+    justify-content:center; background:rgba(58,44,30,.55); border-radius:18px; }
+  .card { background:#fffbef; border:4px solid #5b4632; border-radius:20px; padding:28px 26px;
+    width:320px; max-width:86%; text-align:center; box-shadow:6px 7px 0 rgba(0,0,0,.3);
+    transform:rotate(-1deg); }
+  .card h1 { font-size:30px; color:#5b4632; margin-bottom:6px; }
+  .card h1 .em { font-size:38px; }
+  .card p { font-size:15px; color:#7a6248; line-height:1.7; margin:10px 0 18px; }
+  .card .stars { font-size:34px; letter-spacing:6px; margin:4px 0 10px; }
+  .bigbtn { display:inline-block; background:#8fce6e; color:#2f4a1e; font-weight:900; font-size:20px;
+    border:4px solid #2f4a1e; border-radius:16px; padding:12px 34px; cursor:pointer;
+    box-shadow:4px 5px 0 rgba(0,0,0,.3); transition:transform .08s; }
+  .bigbtn:active { transform:translate(2px,3px); box-shadow:1px 1px 0 rgba(0,0,0,.3); }
+  .bigbtn.alt { background:#f2c14e; color:#5b3a10; border-color:#5b3a10; margin-top:10px; font-size:16px; padding:9px 24px;}
+  .hidden { display:none !important; }
+  #lvlLabel { position:absolute; bottom:12px; left:0; right:0; text-align:center; z-index:5;
+    pointer-events:none; color:#fffbef; font-weight:800; font-size:14px;
+    text-shadow:1px 2px 0 rgba(0,0,0,.4); opacity:.9; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <div class="hud">
+    <div class="pill" id="timePill">⏱ 15</div>
+    <div id="inkbar"><div id="inkfill"></div></div>
+    <div class="pill" id="lvlPill">1/5</div>
+  </div>
+  <div id="lvlLabel">畫一條線，保護狗狗！</div>
+
+  <div class="overlay" id="menuOv">
+    <div class="card">
+      <h1><span class="em">🐶</span><br>Oops All Shelter</h1>
+      <p>天洞又在掉垃圾了！<br>畫一條<strong>紙膠帶</strong>幫狗狗擋住，<br>撐到時間結束就過關。<br>墨水有限，畫短一點比較厲害喔。</p>
+      <button class="bigbtn" id="startBtn">開始保護 🐾</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="winOv">
+    <div class="card">
+      <h1>狗狗得救了！</h1>
+      <div class="stars" id="stars">⭐⭐⭐</div>
+      <p id="winMsg">好厲害的紙膠帶！</p>
+      <button class="bigbtn" id="nextBtn">下一關 ➜</button><br>
+      <button class="bigbtn alt" id="replayBtn">重玩這關</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="loseOv">
+    <div class="card">
+      <h1>哎呀…😢</h1>
+      <p id="loseMsg">狗狗被垃圾砸到了！<br>再畫一條更厲害的吧。</p>
+      <button class="bigbtn" id="retryBtn">再試一次 🐾</button>
+    </div>
+  </div>
+</div>
+<script>
+'use strict';
+// ================= Oops All Shelter =================
+// Draw-a-line physics puzzler: protect the extremely cute dog
+// from falling junk. Cut-paper collage art direction.
+const W = 420, H = 760;
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let DPR = 1;
+function fitCanvas() {
+  DPR = Math.min(2.5, window.devicePixelRatio || 1);
+  const r = cv.getBoundingClientRect();
+  cv.width = Math.round(r.width * DPR); cv.height = Math.round(r.height * DPR);
+  ctx.setTransform(DPR * r.width / W, 0, 0, DPR * r.height / H, 0, 0);
+  buildBG();
+}
+window.addEventListener('resize', fitCanvas);
+
+// ---------- cut-paper helpers ----------
+function jitter(x, amt) { return x + (Math.random() - .5) * amt; }
+function paperPoly(c, pts, fill) {
+  c.beginPath();
+  pts.forEach((p, i) => { const x = jitter(p[0], 5), y = jitter(p[1], 5);
+    i ? c.lineTo(x, y) : c.moveTo(x, y); });
+  c.closePath(); c.fillStyle = fill; c.fill();
+}
+function tape(c, x, y, w, h, rot) {
+  c.save(); c.translate(x, y); c.rotate(rot);
+  c.fillStyle = 'rgba(232,220,190,.85)';
+  c.fillRect(-w/2, -h/2, w, h);
+  c.fillStyle = 'rgba(255,255,255,.25)';
+  c.fillRect(-w/2, -h/2, w, h/3);
+  c.restore();
+}
+// background: kraft paper + speckles, precomputed
+const bgC = document.createElement('canvas');
+function buildBG() {
+  bgC.width = W; bgC.height = H;
+  const b = bgC.getContext('2d');
+  b.fillStyle = '#d8bf92'; b.fillRect(0, 0, W, H);
+  for (let i = 0; i < 500; i++) {
+    b.fillStyle = Math.random() < .5 ? 'rgba(120,90,50,.08)' : 'rgba(255,245,220,.10)';
+    b.beginPath(); b.arc(Math.random()*W, Math.random()*H, Math.random()*2.2+.6, 0, 7); b.fill();
+  }
+  // torn sky-hole at top where junk falls from
+  b.save(); b.translate(W/2, -30);
+  b.beginPath();
+  for (let a = 0; a <= Math.PI*2 + .1; a += .25) {
+    const r = 95 + Math.sin(a*3)*14 + (Math.random()-.5)*10;
+    const x = Math.cos(a)*r, y = Math.sin(a)*r*.55;
+    a ? b.lineTo(x, y) : b.moveTo(x, y);
+  }
+  b.closePath(); b.fillStyle = '#2b2138'; b.fill();
+  b.strokeStyle = '#efe6cf'; b.lineWidth = 7; b.stroke();
+  b.restore();
+  b.fillStyle = '#efe6cf'; b.font = '700 13px sans-serif'; b.textAlign = 'center';
+  b.fillText('s k y - h o l e', W/2, 78);
+}
+
+// ---------- audio (tiny) ----------
+let AC = null;
+function audio() { if (!AC) { try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }
+  if (AC && AC.state === 'suspended') AC.resume(); }
+function tone(f, d, type, v, slide) {
+  if (!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type || 'sine'; o.frequency.setValueAtTime(f, AC.currentTime);
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, AC.currentTime + d);
+  g.gain.setValueAtTime(v || .2, AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001, AC.currentTime + d);
+  o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime + d);
+}
+const SFX = {
+  draw(){ tone(700,.06,'triangle',.12,900); },
+  solid(){ tone(300,.12,'triangle',.2,520); setTimeout(()=>tone(450,.1,'triangle',.18,660),90); },
+  thud(){ tone(140,.09,'sine',.25,70); },
+  pop(){ tone(880,.09,'sine',.2,1320); },
+  hurt(){ tone(300,.25,'sawtooth',.15,120); },
+  win(){ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.16,'triangle',.2),i*110)); },
+  bark(){ tone(400,.09,'square',.12,260); setTimeout(()=>tone(430,.09,'square',.12,280),130); },
+};
+
+// ---------- levels ----------
+const JUNK = {
+  crate:   { emoji:'📦', r:17, w:1 },
+  bowling: { emoji:'🎳', r:14, w:1 },
+  piano:   { emoji:'🎹', r:19, w:1.6 },
+  safe:    { emoji:'🔒', r:17, w:1.4 },
+  anvil:   { emoji:'⚙️', r:17, w:1.8 },
+};
+const LEVELS = [
+  { time:12, ink:520, interval:1.6, types:['crate','bowling'],        fall:1.0, tip:'畫一條線，保護狗狗！' },
+  { time:14, ink:480, interval:1.3, types:['crate','bowling','safe'], fall:1.1, tip:'垃圾變多了，小心！' },
+  { time:15, ink:440, interval:1.1, types:['crate','piano','safe'],   fall:1.2, tip:'鋼琴很重，別讓它掉下來' },
+  { time:16, ink:420, interval:0.9, types:['piano','safe','anvil'],   fall:1.3, tip:'鐵砧來了，墨水省著用' },
+  { time:18, ink:400, interval:0.75,types:['crate','bowling','piano','safe','anvil'], fall:1.45, tip:'最終考驗：垃圾大爆發！' },
+];
+const GROUND_Y = H - 96;
+
+// ---------- state ----------
+let phase = 'menu';       // menu | draw | fall | win | lose
+let lvl = 0, timeLeft = 0, spawnT = 0, elapsed = 0;
+let junks = [], segments = [];
+let drawing = null, inkLeft = 0;
+let dogMood = 'idle', dogT = 0, blinkT = 2;
+const dog = { x: W/2, y: GROUND_Y - 40, r: 34 };
+let stars = 0;
+
+// ================= THE EXTREMELY CUTE DOG =================
+function drawDog(c, t) {
+  const d = dog, s = 1;
+  const scared = dogMood === 'scared';
+  const happy = dogMood === 'happy';
+  const hurt = dogMood === 'hurt';
+  const shx = scared ? Math.sin(t*45)*2.5 : 0;
+  const hop = happy ? Math.abs(Math.sin(t*6))*14 : 0;
+  const x = d.x + shx, y = d.y - hop;
+  // shadow
+  c.fillStyle = 'rgba(60,40,20,.18)';
+  c.beginPath(); c.ellipse(d.x, GROUND_Y + 6, 44, 10, 0, 0, 7); c.fill();
+  const cream = '#fff6e8', creamD = '#f3e3c8', earC = '#c08a4e', earD = '#a06a35';
+  // tail (wag!)
+  const wag = Math.sin(t * (happy ? 16 : 9)) * .45;
+  c.save(); c.translate(x + 34, y + 6); c.rotate(-.5 + wag);
+  c.fillStyle = earC;
+  c.beginPath(); c.ellipse(14, 0, 16, 8, 0, 0, 7); c.fill();
+  c.fillStyle = '#fff'; c.beginPath(); c.ellipse(26, 0, 8, 7, 0, 0, 7); c.fill();
+  c.restore();
+  // feet
+  c.fillStyle = creamD;
+  c.beginPath(); c.ellipse(x-18, y+34, 13, 9, 0, 0, 7); c.fill();
+  c.beginPath(); c.ellipse(x+18, y+34, 13, 9, 0, 0, 7); c.fill();
+  // body
+  c.fillStyle = cream;
+  c.beginPath(); c.ellipse(x, y+12, 34, 28, 0, 0, 7); c.fill();
+  c.strokeStyle = 'rgba(150,110,70,.35)'; c.lineWidth = 2.5; c.stroke();
+  // belly patch
+  c.fillStyle = '#fffdf6';
+  c.beginPath(); c.ellipse(x, y+18, 20, 16, 0, 0, 7); c.fill();
+  // ears (floppy, bounce a little)
+  const eb = Math.sin(t*9)*.06 + (scared ? -.35 : 0);
+  [[-1, eb], [1, -eb]].forEach(([sg, e]) => {
+    c.save(); c.translate(x + sg*30, y - 26); c.rotate(sg*(.5 + e));
+    c.fillStyle = earC;
+    c.beginPath(); c.ellipse(0, 12, 13, 24, 0, 0, 7); c.fill();
+    c.fillStyle = earD;
+    c.beginPath(); c.ellipse(0, 16, 7, 15, 0, 0, 7); c.fill();
+    c.restore();
+  });
+  // head
+  c.fillStyle = cream;
+  c.beginPath(); c.arc(x, y - 22, 32, 0, 7); c.fill();
+  c.strokeStyle = 'rgba(150,110,70,.35)'; c.lineWidth = 2.5; c.stroke();
+  // head fluff
+  c.fillStyle = cream;
+  [[-20,-46],[0,-52],[20,-46]].forEach(([fx,fy]) => {
+    c.beginPath(); c.arc(x+fx, y+fy, 9, 0, 7); c.fill();
+  });
+  // blush (always — maximum cute)
+  c.fillStyle = 'rgba(255,150,160,.55)';
+  c.beginPath(); c.arc(x-22, y-12, 7, 0, 7); c.fill();
+  c.beginPath(); c.arc(x+22, y-12, 7, 0, 7); c.fill();
+  // eyes
+  blinkT -= 1/60;
+  if (blinkT < -0.12) blinkT = 2 + Math.random()*2.5;
+  const blinking = blinkT < 0 && !hurt;
+  const eyeR = scared ? 9 : 7.5;
+  if (hurt) {
+    // >_< dizzy but still cute
+    c.strokeStyle = '#4a3826'; c.lineWidth = 3.5; c.lineCap = 'round';
+    [[-13],[13]].forEach(([ex]) => {
+      c.beginPath();
+      c.moveTo(x+ex-6, y-30); c.lineTo(x+ex+6, y-20);
+      c.moveTo(x+ex+6, y-30); c.lineTo(x+ex-6, y-20);
+      c.stroke();
+    });
+  } else if (happy) {
+    // happy closed eyes ∪∪
+    c.strokeStyle = '#4a3826'; c.lineWidth = 3.5; c.lineCap = 'round';
+    [[-13],[13]].forEach(([ex]) => {
+      c.beginPath(); c.arc(x+ex, y-28, 7, .15*Math.PI, .85*Math.PI); c.stroke();
+    });
+  } else if (blinking) {
+    c.strokeStyle = '#4a3826'; c.lineWidth = 3; c.lineCap = 'round';
+    [[-13],[13]].forEach(([ex]) => {
+      c.beginPath(); c.moveTo(x+ex-6, y-24); c.quadraticCurveTo(x+ex, y-21, x+ex+6, y-24); c.stroke();
+    });
+  } else {
+    // big sparkly eyes
+    [[-13],[13]].forEach(([ex]) => {
+      c.fillStyle = '#3a2c1e';
+      c.beginPath(); c.arc(x+ex, y-24, eyeR, 0, 7); c.fill();
+      c.fillStyle = '#fff';
+      c.beginPath(); c.arc(x+ex-2.5, y-27, eyeR*.38, 0, 7); c.fill();
+      c.beginPath(); c.arc(x+ex+2, y-21, eyeR*.18, 0, 7); c.fill();
+    });
+  }
+  if (scared) {
+    // worried eyebrows
+    c.strokeStyle = '#4a3826'; c.lineWidth = 3; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x-20, y-42); c.lineTo(x-8, y-38); c.stroke();
+    c.beginPath(); c.moveTo(x+20, y-42); c.lineTo(x+8, y-38); c.stroke();
+  }
+  // nose + mouth (ω mouth = peak cute)
+  c.fillStyle = '#4a3826';
+  c.beginPath(); c.ellipse(x, y-12, 5, 4, 0, 0, 7); c.fill();
+  c.strokeStyle = '#4a3826'; c.lineWidth = 2.2; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(x, y-8);
+  c.quadraticCurveTo(x-6, y-4, x-9, y-8);
+  c.moveTo(x, y-8);
+  c.quadraticCurveTo(x+6, y-4, x+9, y-8);
+  c.stroke();
+  if (happy) { // tongue!
+    c.fillStyle = '#ff9aa8';
+    c.beginPath(); c.ellipse(x+4, y-2, 5, 8, .2, 0, 7); c.fill();
+  }
+}
+// ================= junk physics =================
+function spawnJunk() {
+  const L = LEVELS[lvl];
+  const type = L.types[(Math.random()*L.types.length)|0];
+  const d = JUNK[type];
+  junks.push({
+    type, emoji: d.emoji, r: d.r,
+    x: W/2 + (Math.random()-.5)*220, y: -30,
+    vx: (Math.random()-.5)*60, vy: 60,
+    rot: Math.random()*6.28, vr: (Math.random()-.5)*4,
+    w: d.w, rest: 0,
+  });
+}
+function segClosest(px, py, ax, ay, bx, by) {
+  const dx = bx-ax, dy = by-ay;
+  const L2 = dx*dx + dy*dy;
+  let t = L2 ? ((px-ax)*dx + (py-ay)*dy) / L2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return [ax + dx*t, ay + dy*t];
+}
+function stepPhysics(dt) {
+  const L = LEVELS[lvl];
+  spawnT -= dt;
+  if (spawnT <= 0) { spawnJunk(); spawnT = L.interval * (0.7 + Math.random()*0.6); }
+  const G = 900;
+  for (const j of junks) {
+    j.vy += G * dt * j.w;
+    j.vy = Math.min(j.vy, 620 * L.fall);
+    j.x += j.vx * dt; j.y += j.vy * dt;
+    j.rot += j.vr * dt;
+    // collide with tape segments
+    for (const s of segments) {
+      const [cx, cy] = segClosest(j.x, j.y, s.ax, s.ay, s.bx, s.by);
+      let dx = j.x - cx, dy = j.y - cy;
+      let dist = Math.hypot(dx, dy);
+      const minD = j.r + 7; // tape half-width
+      if (dist < minD) {
+        if (dist < .001) { dx = 0; dy = -1; dist = .001; }
+        const nx = dx/dist, ny = dy/dist;
+        j.x = cx + nx*minD; j.y = cy + ny*minD;
+        const vn = j.vx*nx + j.vy*ny;
+        if (vn < 0) {
+          const rest = .32;
+          j.vx -= (1+rest)*vn*nx; j.vy -= (1+rest)*vn*ny;
+          j.vx *= .96; j.vr *= .8;
+          if (Math.abs(vn) > 120) SFX.thud();
+        }
+      }
+    }
+    // walls
+    if (j.x < j.r) { j.x = j.r; j.vx = Math.abs(j.vx)*.4; }
+    if (j.x > W-j.r) { j.x = W-j.r; j.vx = -Math.abs(j.vx)*.4; }
+    // ground: rest
+    if (j.y > GROUND_Y - j.r) {
+      j.y = GROUND_Y - j.r;
+      if (Math.abs(j.vy) > 90) SFX.thud();
+      j.vy = -j.vy*.18; j.vx *= .82; j.vr *= .7;
+      if (Math.hypot(j.vx, j.vy) < 26) { j.vy = 0; j.vx = 0; j.rest++; }
+    }
+    // dog hit?
+    const dd = Math.hypot(j.x - dog.x, (j.y) - (dog.y - 10));
+    if (dd < j.r + dog.r - 8 && Math.hypot(j.vx, j.vy) > 40) {
+      lose('junk'); return;
+    }
+  }
+  // scared when junk is close & falling fast above dog
+  let near = false;
+  for (const j of junks) {
+    if (j.vy > 150 && Math.abs(j.x - dog.x) < 110 && j.y < dog.y && dog.y - j.y < 260) { near = true; break; }
+  }
+  if (phase === 'fall') dogMood = near ? 'scared' : 'idle';
+}
+
+// ================= drawing input =================
+function evPos(e) {
+  const r = cv.getBoundingClientRect();
+  return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height];
+}
+cv.addEventListener('pointerdown', e => {
+  audio(); e.preventDefault();
+  if (phase !== 'draw' || drawing) return;
+  const [x, y] = evPos(e);
+  drawing = { pts: [[x, y]], len: 0 };
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove', e => {
+  if (phase !== 'draw' || !drawing) return;
+  const [x, y] = evPos(e);
+  const p = drawing.pts[drawing.pts.length-1];
+  const d = Math.hypot(x-p[0], y-p[1]);
+  if (d < 6) return;
+  if (drawing.len + d > inkLeft) return; // out of ink
+  drawing.pts.push([x, y]); drawing.len += d;
+  inkLeft -= d; updateInk();
+  if (drawing.pts.length % 4 === 0) SFX.draw();
+});
+function finishStroke() {
+  if (!drawing) return;
+  const pts = drawing.pts;
+  drawing = null;
+  if (pts.length < 2) return; // too short, stay in draw phase
+  for (let i = 0; i < pts.length-1; i++)
+    segments.push({ ax: pts[i][0], ay: pts[i][1], bx: pts[i+1][0], by: pts[i+1][1] });
+  SFX.solid();
+  phase = 'fall';
+  document.getElementById('lvlLabel').textContent = '撐住！垃圾來了！';
+}
+cv.addEventListener('pointerup', e => { if (phase === 'draw') finishStroke(); });
+cv.addEventListener('pointercancel', () => { drawing = null; });
+
+// ================= game flow =================
+const $ = id => document.getElementById(id);
+function updateInk() { $('inkfill').style.width = (100*inkLeft/LEVELS[lvl].ink) + '%'; }
+function startLevel(n) {
+  lvl = n;
+  const L = LEVELS[lvl];
+  junks = []; segments = []; drawing = null;
+  inkLeft = L.ink; timeLeft = L.time; spawnT = .8; elapsed = 0;
+  dogMood = 'idle';
+  phase = 'draw';
+  $('lvlPill').textContent = (lvl+1) + '/' + LEVELS.length;
+  $('lvlLabel').textContent = L.tip;
+  $('menuOv').classList.add('hidden');
+  $('winOv').classList.add('hidden');
+  $('loseOv').classList.add('hidden');
+  updateInk();
+}
+function win() {
+  phase = 'win';
+  dogMood = 'happy'; SFX.win(); setTimeout(()=>SFX.bark(), 500);
+  const used = LEVELS[lvl].ink - inkLeft;
+  stars = used < LEVELS[lvl].ink*.35 ? 3 : used < LEVELS[lvl].ink*.7 ? 2 : 1;
+  $('stars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
+  const msgs = ['紙膠帶之神！狗狗想跟你回家。', '好厲害！狗狗搖尾巴搖到飛起來。', '過關！狗狗給你一個愛的舔舔。'];
+  $('winMsg').textContent = msgs[lvl % msgs.length];
+  $('nextBtn').style.display = lvl+1 < LEVELS.length ? '' : 'none';
+  setTimeout(()=>$('winOv').classList.remove('hidden'), 900);
+}
+function lose(reason) {
+  if (phase !== 'fall') return;
+  phase = 'lose';
+  dogMood = 'hurt'; SFX.hurt(); setTimeout(()=>SFX.bark(), 400);
+  $('loseMsg').innerHTML = reason === 'timeout'
+    ? '時間還沒撐完…<br>線畫長一點試試？'
+    : '狗狗被垃圾砸到了！<br>再畫一條更厲害的吧。';
+  setTimeout(()=>$('loseOv').classList.remove('hidden'), 900);
+}
+$('startBtn').addEventListener('click', () => { audio(); SFX.pop(); startLevel(0); });
+$('nextBtn').addEventListener('click', () => { audio(); SFX.pop(); startLevel(lvl+1); });
+$('replayBtn').addEventListener('click', () => { audio(); SFX.pop(); startLevel(lvl); });
+$('retryBtn').addEventListener('click', () => { audio(); SFX.pop(); startLevel(lvl); });
+
+// ================= main loop =================
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(.05, (now - last)/1000); last = now;
+  const t = now/1000;
+  if (phase === 'fall') {
+    elapsed += dt; timeLeft -= dt;
+    if (timeLeft <= 0) { timeLeft = 0; win(); }
+    else stepPhysics(dt);
+    $('timePill').textContent = '⏱ ' + Math.ceil(timeLeft);
+  }
+  render(t);
+  requestAnimationFrame(loop);
+}
+
+// ================= render =================
+function render(t) {
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(bgC, 0, 0, W, H);
+  // decorative tape corners
+  tape(ctx, 30, 130, 90, 26, -.5); tape(ctx, W-30, 200, 90, 26, .4);
+  // ground: torn paper strip
+  paperPoly(ctx, [[-10,GROUND_Y],[W+10,GROUND_Y],[W+10,H+10],[-10,H+10]], '#b99c6e');
+  ctx.fillStyle = 'rgba(90,65,35,.25)';
+  ctx.fillRect(0, GROUND_Y, W, 4);
+  // grass tufts
+  ctx.fillStyle = '#7fa35a';
+  for (let i = 0; i < 8; i++) {
+    const gx = (i*53 + 17) % W;
+    ctx.beginPath(); ctx.ellipse(gx, GROUND_Y+34, 9, 5, 0, 0, 7); ctx.fill();
+  }
+  // the tape barrier (player's line) — masking tape look
+  if (segments.length || (drawing && drawing.pts.length > 1)) {
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const drawStrip = pts => {
+      ctx.strokeStyle = 'rgba(190,160,110,.9)'; ctx.lineWidth = 17;
+      ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke();
+      ctx.strokeStyle = 'rgba(238,228,198,.95)'; ctx.lineWidth = 12;
+      ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke();
+    };
+    let cur = [];
+    for (const s of segments) {
+      if (!cur.length) cur.push([s.ax, s.ay]);
+      cur.push([s.bx, s.by]);
+    }
+    if (cur.length > 1) drawStrip(cur);
+    if (drawing && drawing.pts.length > 1) {
+      ctx.setLineDash([2, 7]); drawStrip(drawing.pts); ctx.setLineDash([]);
+    }
+  }
+  // junks
+  for (const j of junks) {
+    ctx.save(); ctx.translate(j.x, j.y); ctx.rotate(j.rot);
+    ctx.fillStyle = 'rgba(60,40,20,.15)';
+    ctx.beginPath(); ctx.ellipse(3, 5, j.r, j.r*.9, 0, 0, 7); ctx.fill();
+    paperPoly(ctx, [[-j.r,-j.r],[j.r,-j.r],[j.r,j.r],[-j.r,j.r]], '#efe3c8');
+    ctx.font = (j.r*1.5) + 'px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(j.emoji, 0, 2);
+    ctx.restore();
+  }
+  drawDog(ctx, t);
+  // draw-phase hint
+  if (phase === 'draw' && !drawing) {
+    ctx.fillStyle = 'rgba(255,251,240,.9)';
+    ctx.font = '800 16px sans-serif'; ctx.textAlign = 'center';
+    const bob = Math.sin(t*3)*5;
+    ctx.fillText('👇 在這裡畫一條線 👇', W/2, 150 + bob);
+  }
+}
+
+// debug / test hooks
+window.OAS = {
+  get phase() { return phase; },
+  get level() { return lvl; },
+  get junkCount() { return junks.length; },
+  get ink() { return Math.round(inkLeft); },
+  start(n) { startLevel(n || 0); },
+  drawLine(pts) { // pts: [[x,y],...] in game coords
+    drawing = { pts: [pts[0]], len: 0 };
+    for (let i = 1; i < pts.length; i++) {
+      const p = drawing.pts[drawing.pts.length-1];
+      const d = Math.hypot(pts[i][0]-p[0], pts[i][1]-p[1]);
+      drawing.pts.push(pts[i]); drawing.len += d; inkLeft -= d;
+    }
+    updateInk(); finishStroke();
+  },
+  advance(sec) { const n = Math.round(sec*60); for (let i=0;i<n;i++) {
+    if (phase==='fall') { timeLeft -= 1/60; if (timeLeft<=0){timeLeft=0;win();break;} stepPhysics(1/60); } } },
+};
+fitCanvas();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
