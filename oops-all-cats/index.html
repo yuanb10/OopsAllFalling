@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Oops All Cats — a totally legitimate logic puzzle</title>
+<link href="https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; overscroll-behavior:none; }
+  body {
+    font-family:'Gochi Hand', cursive; color:#3a2c1c; background:#2b2118;
+    display:flex; justify-content:center; overflow:hidden; user-select:none; -webkit-user-select:none;
+    touch-action:none;
+  }
+  #stage { position:relative; width:100%; height:100dvh; display:flex; align-items:center; justify-content:center; }
+  #game {
+    width:400px; height:740px; flex:0 0 auto; transform-origin:center center;
+    position:relative; overflow:hidden; border-radius:14px;
+    background:
+      repeating-linear-gradient(0deg, rgba(120,80,40,.05) 0 3px, transparent 3px 7px),
+      linear-gradient(165deg, #d9b983 0%, #cfa96f 60%, #c49a5f 100%);
+    display:flex; flex-direction:column; align-items:center; padding:10px 8px calc(10px + env(safe-area-inset-bottom));
+  }
+  #game.shake { animation:shake .4s linear; }
+  @keyframes shake {
+    0%,100%{transform:translate(0,0)} 20%{transform:translate(-8px,3px)}
+    40%{transform:translate(7px,-4px)} 60%{transform:translate(-5px,-2px)} 80%{transform:translate(4px,3px)}
+  }
+  #hud { width:100%; display:flex; gap:6px; align-items:center; margin-bottom:8px; z-index:5; }
+  .pill {
+    background:#fdf8ec; border:2px solid #3a2c1c; border-radius:10px; padding:3px 9px;
+    font-size:15px; box-shadow:2px 2px 0 rgba(0,0,0,.3); transform:rotate(-.6deg); white-space:nowrap;
+  }
+  .pill:nth-child(2){ transform:rotate(.5deg); }
+  .pill:nth-child(3){ transform:rotate(-.4deg); }
+  #newBtn{ margin-left:auto; transform:rotate(.8deg); cursor:pointer; font-family:inherit; }
+  #boardWrap {
+    width:100%; border:2px solid #3a2c1c; border-radius:12px; overflow:hidden;
+    box-shadow:3px 3px 0 rgba(0,0,0,.3); background:#a87f4e; padding:5px; touch-action:none;
+  }
+  #board { display:grid; grid-template-columns:repeat(6, 1fr); grid-template-rows:repeat(6, 1fr); gap:4px; aspect-ratio:1/1; }
+  .tile {
+    border-radius:9px; border:2px solid rgba(58,44,28,.55); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:30px;
+    box-shadow:inset 2px 2px 0 rgba(255,255,255,.35), inset -2px -2px 0 rgba(0,0,0,.08);
+    transition:transform .08s; position:relative;
+    min-width:0; min-height:0; overflow:hidden;
+  }
+  .tile:nth-child(odd) { transform:rotate(.5deg); }
+  .tile:nth-child(even) { transform:rotate(-.5deg); }
+  .tile.tap { animation:tapb .15s ease-out; }
+  @keyframes tapb { 50% { transform:scale(.92); } }
+  .tile.has-cat { font-size:32px; box-shadow:inset 0 0 0 3px #fff8, 2px 2px 0 rgba(0,0,0,.3); }
+  .tile.has-cat:nth-child(odd) { transform:rotate(.5deg); }
+  .tile.has-cat:nth-child(even) { transform:rotate(-.5deg); }
+  .tile.wrong { animation:wrongf .45s ease-out; }
+  @keyframes wrongf {
+    0%,100% { filter:none; } 30% { filter:brightness(.6) sepia(1) hue-rotate(-50deg); transform:scale(.9); }
+  }
+  .tile.reveal { box-shadow:inset 0 0 0 3px #e74c3c; }
+  #hint { font-size:13px; opacity:.7; text-align:center; margin-top:8px; line-height:1.35; }
+  #modes { display:flex; gap:8px; margin-bottom:8px; z-index:5; }
+  .modebtn {
+    font-family:inherit; font-size:15px; cursor:pointer; padding:4px 16px;
+    background:#fdf8ec; border:2px solid #3a2c1c; border-radius:10px; color:#3a2c1c;
+    box-shadow:2px 2px 0 rgba(0,0,0,.3); opacity:.55; transform:rotate(-.5deg);
+  }
+  .modebtn:nth-child(2) { transform:rotate(.5deg); }
+  .modebtn.sel { opacity:1; background:#ffe9a8; transform:scale(1.05); }
+  .tile .nomark {
+    font-size:22px; opacity:.85; pointer-events:none;
+    filter:drop-shadow(1px 1px 0 rgba(255,255,255,.6));
+  }
+  .tile .nomark.auto { opacity:.38; }
+  .tile .petimg {
+    width:88%; aspect-ratio:1/1; object-fit:cover; border-radius:50%;
+    border:2px solid #3a2c1c; display:block; pointer-events:none;
+    box-shadow:1px 1px 0 rgba(0,0,0,.25);
+  }
+  #petBtn { background:none; border:none; font-family:inherit; cursor:pointer; padding:0 2px; display:inline-flex; align-items:center; vertical-align:middle; }
+  .petbtnimg { width:20px; height:20px; border-radius:50%; object-fit:cover; border:1.5px solid #3a2c1c; display:block; }
+  .petpick {
+    font-family:inherit; cursor:pointer; background:#fdf8ec; border:2px solid #3a2c1c; border-radius:10px;
+    padding:6px 14px; font-size:15px; box-shadow:2px 2px 0 rgba(0,0,0,.3); opacity:.55;
+    display:flex; flex-direction:column; align-items:center; gap:2px; min-width:86px;
+  }
+  .petpick .peimg { width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid #3a2c1c; display:block; }
+  .petpick.sel { opacity:1; background:#ffe9a8; transform:scale(1.05); }
+  .overlay { position:absolute; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
+    background:rgba(35,25,15,.8); padding:18px; border-radius:14px; }
+  .overlay.hidden { display:none; }
+  .sheet {
+    width:100%; max-width:350px; max-height:94%; overflow-y:auto; background:#fdf8ec; border:3px solid #3a2c1c;
+    border-radius:14px; box-shadow:5px 5px 0 rgba(0,0,0,.4); padding:14px 14px; text-align:center; transform:rotate(-.6deg);
+    touch-action:pan-y;
+  }
+  .sheet h1 { font-size:32px; line-height:1.05; }
+  .sheet h2 { font-size:28px; }
+  .sheet p { font-size:14px; margin:5px 0; }
+  .sheet .sub { font-size:12px; opacity:.65; }
+  .rules { text-align:left; font-size:13.5px; margin:8px auto; max-width:300px; line-height:1.35; }
+  .rules li { margin:3px 0 3px 20px; }
+  .bigbtn {
+    font-family:inherit; font-size:20px; cursor:pointer; margin-top:8px; padding:8px 26px;
+    background:#9fd48a; border:3px solid #3a2c1c; border-radius:12px; color:#2c4423;
+    box-shadow:3px 3px 0 rgba(0,0,0,.3); transform:rotate(-1deg);
+  }
+  .bigbtn:active { transform:scale(.95); }
+</style>
+</head>
+<body>
+<div id="stage"><div id="game">
+  <div id="hud">
+    <div class="pill"><button id="petBtn" title="switch pet"></button> <b id="catNum">0</b>/6</div>
+    <div class="pill" id="livesPill">❤️❤️❤️</div>
+    <div class="pill">⏱ <b id="timeNum">0:00</b></div>
+    <button class="pill" id="helpBtn2">?</button>
+    <button class="pill" id="newBtn">↻ new</button>
+  </div>
+  <div id="modes">
+    <button id="huntBtn" class="modebtn sel">HUNT</button>
+    <button id="safeBtn" class="modebtn">❌ NO CAT</button>
+    <button id="autoBtn" class="modebtn sel">✨ AUTO</button>
+  </div>
+  <div id="boardWrap"><div id="board"></div></div>
+  <div id="hint">one pet per row, column &amp; color · pets can't touch, not even diagonally<br><span style="opacity:.8">HUNT: double-tap to place a pet · NO CAT: tap to cross out safe tiles</span></div>
+
+  <div class="overlay" id="titleOverlay">
+    <div class="sheet">
+      <h1>OOPS<br>ALL CATS</h1>
+      <p>a totally legitimate logic puzzle</p>
+      <ul class="rules">
+        <li>🐾 6 pets are hiding. Each needs its own territory!</li>
+        <li>🗺️ The board is split into 6 colored regions — <b>one pet per region</b>.</li>
+        <li>🐾 Pets are aloof: <b>one per row, one per column</b>, and they can't <b>touch</b> — not even diagonally.</li>
+        <li>👆 <b>Double-tap</b> a tile to place a pet. Wrong guess costs a heart (3 total).</li>
+        <li>❌ <b>NO CAT</b> mode: tap to cross out safe tiles, free.</li>
+        <li>✨ <b>AUTO</b> crosses out tiles a placed pet rules out.</li>
+        <li>🏆 Find all 6. Pure logic — no guessing needed!</li>
+      </ul>
+      <button class="bigbtn" id="startBtn">LET THE PETS IN</button>
+      <div style="margin-top:10px;font-size:14px;opacity:.75">— CHOOSE YOUR PET —</div>
+      <div id="petRow" style="display:flex;gap:10px;justify-content:center;margin-top:6px">
+        <button class="petpick sel" data-pet="cat"><img class="peimg" id="pickCatImg" alt="Tabby"><span>Tabby</span></button>
+        <button class="petpick" data-pet="husky"><img class="peimg" id="pickHuskyImg" alt="Husky"><span>Husky</span></button>
+      </div>
+      <p class="sub">an OopsAllFalling joint</p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="endOverlay">
+    <div class="sheet">
+      <h2 id="endTitle">PURR-FECT!</h2>
+      <p id="endText"></p>
+      <p class="sub" id="endStats"></p>
+      <button class="bigbtn" id="againBtn">NEW PUZZLE</button>
+    </div>
+  </div>
+</div></div>
+<script>
+'use strict';
+/* ============ OOPS ALL CATS — region logic puzzle (clean-room) ============ */
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const N = 6, NCATS = 6, NLIVES = 3;
+const PALETTE = [
+  { bg:'#f6d55c', dark:'#c9a52e' },  /* yellow */
+  { bg:'#f28ba8', dark:'#c25a7d' },  /* pink */
+  { bg:'#6b9df5', dark:'#4a76c9' },  /* blue */
+  { bg:'#f0973f', dark:'#bd6f22' },  /* orange (was teal — too close to blue) */
+  { bg:'#9ed48a', dark:'#6da457' },  /* green */
+  { bg:'#b48ce8', dark:'#8663bd' },  /* purple (was gray — too washed out) */
+];
+let S = null;
+const rnd = Math.random;
+const CAT_IMG = "pet-cat-256.jpg";
+const HUSKY_IMG = "pet-husky-256.jpg";
+const PETS = {
+  cat:   { pic: () => '<img class="petimg" src="' + CAT_IMG + '" alt="cat">',
+           icon: () => '<img class="petbtnimg" src="' + CAT_IMG + '" alt="cat">',
+           name: 'Tabby', plural: 'cats', winTitle: 'PURR-FECT! 🎉', findText: 'found their territories' },
+  husky: { pic: () => '<img class="petimg" src="' + HUSKY_IMG + '" alt="husky">',
+           icon: () => '<img class="petbtnimg" src="' + HUSKY_IMG + '" alt="husky">',
+           name: 'Husky', plural: 'huskies', winTitle: 'AWOOO! 🎉', findText: 'found their territories' },
+};
+const PET_ORDER = ['cat', 'husky'];
+/* hand-drawn tabby — cuter than an emoji, cheaper than an artist */
+function shuffle(a) {
+  a = [...a];
+  for (let i = a.length - 1; i > 0; i--) { const j = (rnd()*(i+1))|0; [a[i],a[j]] = [a[j],a[i]]; }
+  return a;
+}
+
+/* ---------- puzzle generation ---------- */
+function placeCats() {
+  const cats = [];
+  function bt(r) {
+    if (r === N) return true;
+    for (const c of shuffle([0,1,2,3,4,5])) {
+      let ok = true;
+      for (const [cc, rr] of cats) {
+        if (cc === c) { ok = false; break; }
+        if (Math.abs(rr - r) <= 1 && Math.abs(cc - c) <= 1) { ok = false; break; }
+      }
+      if (!ok) continue;
+      cats.push([c, r]);
+      if (bt(r + 1)) return true;
+      cats.pop();
+    }
+    return false;
+  }
+  return bt(0) ? cats : null;
+}
+function growRegions(cats) {
+  const reg = Array.from({ length:N }, () => Array(N).fill(-1));
+  cats.forEach(([c, r], i) => { reg[r][c] = i; });
+  let unclaimed = N*N - N, guard = 0;
+  const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+  while (unclaimed > 0 && guard++ < 20000) {
+    const frontier = [];
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (reg[r][c] !== -1) continue;
+      const seen = new Set();
+      for (const [dc, dr] of DIRS) {
+        const cc = c+dc, rr = r+dr;
+        if (cc >= 0 && cc < N && rr >= 0 && rr < N && reg[rr][cc] !== -1) seen.add(reg[rr][cc]);
+      }
+      for (const id of seen) frontier.push([id, c, r]);
+    }
+    if (!frontier.length) return null;
+    const [id, c, r] = frontier[(rnd()*frontier.length)|0];
+    reg[r][c] = id;
+    unclaimed--;
+  }
+  return unclaimed === 0 ? reg : null;
+}
+function countSolutions(reg) {
+  let count = 0;
+  function bt(r, usedCols, usedReg, placed) {
+    if (count > 1) return;
+    if (r === N) { count++; return; }
+    for (let c = 0; c < N; c++) {
+      if (usedCols.has(c) || usedReg.has(reg[r][c])) continue;
+      let touch = false;
+      for (const [cc, rr] of placed) {
+        if (Math.abs(rr - r) <= 1 && Math.abs(cc - c) <= 1) { touch = true; break; }
+      }
+      if (touch) continue;
+      usedCols.add(c); usedReg.add(reg[r][c]); placed.push([c, r]);
+      bt(r + 1, usedCols, usedReg, placed);
+      placed.pop(); usedReg.delete(reg[r][c]); usedCols.delete(c);
+    }
+  }
+  bt(0, new Set(), new Set(), []);
+  return count;
+}
+function genPuzzle() {
+  for (let attempt = 0; attempt < 600; attempt++) {
+    const cats = placeCats();
+    if (!cats) continue;
+    const reg = growRegions(cats);
+    if (!reg) continue;
+    if (countSolutions(reg) === 1) return { reg, cats };
+  }
+  // fallback (shouldn't happen): return last valid-shaped attempt without uniqueness
+  const cats = placeCats();
+  return { reg: growRegions(cats), cats };
+}
+
+/* ---------- game state ---------- */
+function newPuzzle() {
+  const { reg, cats } = genPuzzle();
+  const pet = S ? S.pet : 'cat';
+  const autoOn = S ? S.autoOn : true;
+  const regionOf = {}, regionCells = Array.from({ length: N }, () => []);
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    regionOf[c+','+r] = reg[r][c];
+    regionCells[reg[r][c]].push([c, r]);
+  }
+  S = {
+    reg, cats, pet, regionOf, regionCells,
+    catSet: new Set(cats.map(([c,r]) => c+','+r)),
+    placed: new Set(),
+    safe: new Set(),
+    auto: new Set(),
+    autoOn,
+    mode: 'hunt',
+    lives: NLIVES, found: 0, mistakes: 0,
+    phase: 'title', started: false, elapsed: 0,
+    solCount: countSolutions(reg),
+  };
+  $('titleOverlay').classList.remove('hidden');
+  $('endOverlay').classList.add('hidden');
+  setMode('hunt');
+  $('autoBtn').classList.toggle('sel', S.autoOn);
+  renderPetBtn(); syncPetPick();
+  buildBoard(); renderAll();
+}
+/* auto-mark: everything a placed pet rules out — same row, column,
+   8 neighbors, and same region. logically certain, never a guess. */
+function recomputeAuto() {
+  S.auto = new Set();
+  if (!S.autoOn) return;
+  for (const k of S.placed) {
+    const [c, r] = k.split(',').map(Number);
+    const mark = (cc, rr) => {
+      const kk = cc + ',' + rr;
+      if (!S.placed.has(kk)) S.auto.add(kk);
+    };
+    for (let i = 0; i < N; i++) { if (i !== c) mark(i, r); if (i !== r) mark(c, i); }
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue;
+      const nc = c + dc, nr = r + dr;
+      if (nc >= 0 && nc < N && nr >= 0 && nr < N) mark(nc, nr);
+    }
+    for (const [cc, rr] of S.regionCells[S.regionOf[k]]) mark(cc, rr);
+  }
+}
+$('autoBtn').onclick = () => {
+  S.autoOn = !S.autoOn;
+  $('autoBtn').classList.toggle('sel', S.autoOn);
+  recomputeAuto(); renderAll();
+  tone(S.autoOn ? 660 : 440, .07, 'triangle', .06);
+};
+function renderPetBtn() { $('petBtn').innerHTML = PETS[S.pet].icon(); }
+function syncPetPick() {
+  document.querySelectorAll('.petpick').forEach(b =>
+    b.classList.toggle('sel', b.getAttribute('data-pet') === S.pet));
+}
+function setPet(p) {
+  if (!PETS[p]) return;
+  S.pet = p;
+  renderPetBtn(); syncPetPick(); refreshTiles();
+  (p === 'husky' ? bark : meow)();
+}
+$('petBtn').onclick = () => {
+  const next = PET_ORDER[(PET_ORDER.indexOf(S.pet) + 1) % PET_ORDER.length];
+  setPet(next);
+};
+document.querySelectorAll('.petpick').forEach(b => {
+  b.onclick = () => setPet(b.getAttribute('data-pet'));
+});
+$('pickCatImg').src = CAT_IMG;
+$('pickHuskyImg').src = HUSKY_IMG;
+function startTimer() {
+  if (S.started) return;
+  S.started = true;
+  S.timerId = setInterval(() => {
+    if (S.phase === 'play') { S.elapsed++; renderTime(); }
+  }, 1000);
+}
+function fmtTime(s) { return ((s/60)|0) + ':' + String(s%60).padStart(2,'0'); }
+
+/* ---------- rendering ---------- */
+let tileEls = [];
+function buildBoard() {
+  const b = $('board'); b.innerHTML = ''; tileEls = [];
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const d = document.createElement('div');
+    d.className = 'tile';
+    d.style.background = 'linear-gradient(135deg,' + PALETTE[S.reg[r][c]].bg + ',' + PALETTE[S.reg[r][c]].dark + ')';
+    d.dataset.c = c; d.dataset.r = r;
+    d.addEventListener('click', onTileTap);
+    b.appendChild(d); tileEls.push(d);
+  }
+}
+function renderAll() { refreshTiles(); renderHUD(); }
+function refreshTiles() {
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const el = tileEls[r*N+c], k = c+','+r;
+    const hasCat = S.placed.has(k);
+    el.classList.toggle('has-cat', hasCat);
+    if (hasCat) el.innerHTML = PETS[S.pet].pic();
+    else if (S.safe.has(k)) el.innerHTML = '<span class="nomark">❌</span>';
+    else if (S.auto.has(k)) el.innerHTML = '<span class="nomark auto">❌</span>';
+    else el.innerHTML = '';
+  }
+}
+function renderHUD() {
+  $('catNum').textContent = S.found;
+  $('livesPill').textContent = '❤️'.repeat(S.lives) + '🤍'.repeat(NLIVES - S.lives);
+  renderTime();
+}
+function renderTime() { $('timeNum').textContent = fmtTime(S.elapsed); }
+
+/* ---------- interaction ---------- */
+function setMode(m) {
+  S.mode = m;
+  $('huntBtn').classList.toggle('sel', m === 'hunt');
+  $('safeBtn').classList.toggle('sel', m === 'safe');
+  tone(520,.07,'triangle',.06);
+}
+$('huntBtn').onclick = () => setMode('hunt');
+$('safeBtn').onclick = () => setMode('safe');
+let lastTap = { k:null, t:0 };
+function onTileTap(e) {
+  if (S.phase !== 'play') return;
+  const el = e.currentTarget;
+  const c = +el.dataset.c, r = +el.dataset.r, k = c+','+r;
+  const now = Date.now();
+  if (S.placed.has(k)) {
+    // single tap on a placed cat removes it (free) — hunt mode only
+    if (S.mode !== 'hunt') return;
+    S.placed.delete(k); S.found--;
+    recomputeAuto();
+    tone(500,.08,'sine',.06);
+    renderAll();
+    lastTap = { k:null, t:0 };
+    return;
+  }
+  if (S.mode === 'safe') {
+    // free note-taking: cross out tiles that can't hide a cat
+    startTimer();
+    if (S.safe.has(k)) S.safe.delete(k); else S.safe.add(k);
+    tone(440,.06,'triangle',.05);
+    el.classList.remove('tap'); void el.offsetWidth; el.classList.add('tap');
+    renderAll();
+    lastTap = { k:null, t:0 };
+    return;
+  }
+  el.classList.remove('tap'); void el.offsetWidth; el.classList.add('tap');
+  if (lastTap.k === k && now - lastTap.t < 400) {
+    lastTap = { k:null, t:0 };
+    tryPlace(c, r, el);
+  } else {
+    lastTap = { k, t: now };
+  }
+}
+function tryPlace(c, r, el) {
+  if (S.phase !== 'play' || S.placed.size >= NCATS) return;
+  startTimer();
+  const k = c+','+r;
+  if (S.catSet.has(k)) {
+    S.placed.add(k); S.found++;
+    S.safe.delete(k);
+    recomputeAuto();
+    (S.pet === 'husky' ? bark : meow)(); renderAll();
+    el.classList.remove('tap'); void el.offsetWidth;
+    if (S.found >= NCATS) win();
+  } else {
+    S.mistakes++; S.lives--;
+    el.classList.add('wrong');
+    setTimeout(() => el.classList.remove('wrong'), 480);
+    badSound(); doShake(); renderHUD();
+    if (S.lives <= 0) gameOver();
+  }
+}
+function doShake() {
+  const g = $('game');
+  g.classList.remove('shake'); void g.offsetWidth; g.classList.add('shake');
+}
+function win() {
+  S.phase = 'won';
+  clearInterval(S.timerId);
+  const P = PETS[S.pet];
+  $('endTitle').textContent = P.winTitle;
+  $('endText').innerHTML = 'All 6 ' + P.plural + ' ' + P.findText + '.';
+  $('endStats').textContent = '⏱ ' + fmtTime(S.elapsed) + ' · ' + (S.mistakes === 0 ? 'flawless! no mistakes' : S.mistakes + (S.mistakes === 1 ? ' mistake' : ' mistakes'));
+  setTimeout(() => $('endOverlay').classList.remove('hidden'), 450);
+  winSound();
+}
+function gameOver() {
+  S.phase = 'over';
+  clearInterval(S.timerId);
+  // reveal cats
+  for (const [c, r] of S.cats) {
+    const k = c+','+r;
+    if (!S.placed.has(k)) tileEls[r*N+c].classList.add('reveal');
+  }
+  S.placed = new Set(S.catSet);
+  refreshTiles();
+  $('endTitle').textContent = 'OUT OF HEARTS 💔';
+  $('endText').innerHTML = 'The ' + PETS[S.pet].plural + ' outsmarted you this time.<br><span class="sub">red frames = where they were hiding</span>';
+  $('endStats').textContent = 'found ' + S.found + '/6';
+  setTimeout(() => $('endOverlay').classList.remove('hidden'), 600);
+  badSound();
+}
+
+/* ---------- buttons ---------- */
+$('startBtn').onclick = () => { tone(600,.1,'triangle',.08); $('titleOverlay').classList.add('hidden'); S.phase = 'play'; };
+$('againBtn').onclick = () => { tone(600,.1,'triangle',.08); newPuzzle(); S.phase = 'play'; };
+$('newBtn').onclick = () => { tone(500,.08,'triangle',.07); newPuzzle(); S.phase = 'play'; };
+$('helpBtn2').onclick = () => { tone(500,.08,'triangle',.07); if (S.phase === 'play') $('titleOverlay').classList.remove('hidden'); };
+
+/* ---------- tiny sfx ---------- */
+let AC = null;
+function tone(f, dur, type, vol) {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type || 'triangle'; o.frequency.value = f;
+    g.gain.setValueAtTime(vol || .08, AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, AC.currentTime + dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(); o.stop(AC.currentTime + dur + .02);
+  } catch (e) {}
+}
+function meow() { tone(720,.12,'sine',.12); setTimeout(() => tone(980,.2,'sine',.11), 110); }
+function bark() { tone(420,.09,'square',.07); setTimeout(() => tone(520,.12,'square',.07), 100); }
+function badSound() { tone(220,.22,'sawtooth',.07); setTimeout(() => tone(150,.3,'sawtooth',.07), 150); }
+function winSound() { [523,659,784,1047,1319].forEach((f,i) => setTimeout(() => tone(f,.22,'triangle',.09), i*130)); }
+
+/* ---------- fit ---------- */
+function fit() {
+  const s = Math.min(1.15, window.innerWidth / 400, window.innerHeight / 740);
+  const g = $('game');
+  if (g) g.style.transform = 'scale(' + s + ')';
+}
+window.addEventListener('resize', fit);
+window.addEventListener('orientationchange', () => setTimeout(fit, 250));
+
+/* ---------- test hook ---------- */
+window.OC = {
+  get phase() { return S.phase; },
+  get lives() { return S.lives; },
+  get found() { return S.found; },
+  get solCount() { return S.solCount; },
+  get mode() { return S.mode; },
+  get safeCount() { return S.safe.size; },
+  get pet() { return S.pet; },
+  get autoCount() { return S.auto.size; },
+  get autoOn() { return S.autoOn; },
+  setPet(p) { setPet(p); },
+  solution() { return S.cats.map(([c,r]) => c + ',' + r); },
+  regions() { return S.reg.map(r => [...r]); },
+  newPuzzle() { newPuzzle(); S.phase = 'play'; $('titleOverlay').classList.add('hidden'); },
+  place(c, r) { tryPlace(c, r, tileEls[r*N+c]); },
+  setMode(m) { setMode(m); },
+  tapSafe(c, r) { onTileTap({ currentTarget: tileEls[r*N+c] }); },
+};
+fit();
+newPuzzle();
+</script>
+</body>
+</html>
