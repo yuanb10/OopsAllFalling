@@ -107,12 +107,14 @@
     box-shadow:3px 3px 0 rgba(0,0,0,.3); transform:rotate(-1deg);
   }
   .bigbtn:active { transform:scale(.95); }
+  .sizbtn { opacity:.55; }
+  .sizbtn.sel { opacity:1; background:#ffe9a8; transform:scale(1.05) rotate(-1deg); }
 </style>
 </head>
 <body>
 <div id="stage"><div id="game">
   <div id="hud">
-    <div class="pill"><button id="petBtn" title="switch pet"></button> <b id="catNum">0</b>/6</div>
+    <div class="pill"><button id="petBtn" title="switch pet"></button> <b id="catNum">0</b>/<span id="catTotal">6</span></div>
     <div class="pill" id="livesPill">❤️❤️❤️</div>
     <div class="pill">⏱ <b id="timeNum">0:00</b></div>
     <button class="pill" id="helpBtn2">?</button>
@@ -131,15 +133,20 @@
       <h1>OOPS<br>ALL CATS</h1>
       <p>a totally legitimate logic puzzle</p>
       <ul class="rules">
-        <li>🐾 6 pets are hiding. Each needs its own territory!</li>
-        <li>🗺️ The board is split into 6 colored regions — <b>one pet per region</b>.</li>
+        <li id="rule1">🐾 6 pets are hiding. Each needs its own territory!</li>
+        <li id="rule2">🗺️ The board is split into 6 colored regions — <b>one pet per region</b>.</li>
         <li>🐾 Pets are aloof: <b>one per row, one per column</b>, and they can't <b>touch</b> — not even diagonally.</li>
         <li>👆 <b>Double-tap</b> a tile to place a pet. Wrong guess costs a heart (3 total).</li>
         <li>❌ <b>NO CAT</b> mode: tap to cross out safe tiles, free.</li>
         <li>✨ <b>AUTO</b> crosses out tiles a placed pet rules out.</li>
-        <li>🏆 Find all 6. Pure logic — no guessing needed!</li>
+        <li id="rule3">🏆 Find all 6. Pure logic — no guessing needed!</li>
       </ul>
       <button class="bigbtn" id="startBtn">LET THE PETS IN</button>
+      <div style="margin-top:12px;font-size:14px;opacity:.75">— BOARD SIZE —</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:6px">
+        <button class="bigbtn sizbtn sel" data-size="6" style="font-size:15px;padding:10px 18px">6×6<br><span style="font-size:11px;opacity:.8">classic hunt</span></button>
+        <button class="bigbtn sizbtn" data-size="8" style="font-size:15px;padding:10px 18px">8×8<br><span style="font-size:11px;opacity:.8">big board</span></button>
+      </div>
       <div style="margin-top:10px;font-size:14px;opacity:.75">— CHOOSE YOUR PET —</div>
       <div id="petRow" style="display:flex;gap:10px;justify-content:center;margin-top:6px">
         <button class="petpick sel" data-pet="cat"><img class="peimg" id="pickCatImg" alt="Tabby"><span>Tabby</span></button>
@@ -163,16 +170,20 @@
 /* ============ OOPS ALL CATS — region logic puzzle (clean-room) ============ */
 const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const N = 6, NCATS = 6, NLIVES = 3;
+let N = 6, NCATS = 6;
+const NLIVES = 3;
 const PALETTE = [
   { bg:'#f6d55c', dark:'#c9a52e' },  /* yellow */
   { bg:'#f28ba8', dark:'#c25a7d' },  /* pink */
   { bg:'#6b9df5', dark:'#4a76c9' },  /* blue */
-  { bg:'#f0973f', dark:'#bd6f22' },  /* orange (was teal — too close to blue) */
+  { bg:'#f0973f', dark:'#bd6f22' },  /* orange */
   { bg:'#9ed48a', dark:'#6da457' },  /* green */
-  { bg:'#b48ce8', dark:'#8663bd' },  /* purple (was gray — too washed out) */
+  { bg:'#b48ce8', dark:'#8663bd' },  /* purple */
+  { bg:'#e85d5d', dark:'#b93a3a' },  /* red */
+  { bg:'#b08d5f', dark:'#7d6140' },  /* brown */
 ];
 let S = null;
+let BOARDSIZE = 6;
 const rnd = Math.random;
 const CAT_IMG = "pet-cat-256.jpg";
 const HUSKY_IMG = "pet-husky-256.jpg";
@@ -197,7 +208,7 @@ function placeCats() {
   const cats = [];
   function bt(r) {
     if (r === N) return true;
-    for (const c of shuffle([0,1,2,3,4,5])) {
+    for (const c of shuffle([...Array(N).keys()])) {
       let ok = true;
       for (const [cc, rr] of cats) {
         if (cc === c) { ok = false; break; }
@@ -269,8 +280,34 @@ function genPuzzle() {
 }
 
 /* ---------- game state ---------- */
+function syncSizeUI() {
+  $('catTotal').textContent = NCATS;
+  if (N === 8) {
+    $('rule1').innerHTML = '🐾 Place 8 pets. Each needs its own territory!';
+    $('rule2').innerHTML = '🗺️ The board is split into 8 colored regions — <b>one pet per region</b>.';
+    $('rule3').innerHTML = '🏆 Place all 8. Pure logic — no guessing needed!';
+  } else {
+    $('rule1').innerHTML = '🐾 6 pets are hiding. Each needs its own territory!';
+    $('rule2').innerHTML = '🗺️ The board is split into 6 colored regions — <b>one pet per region</b>.';
+    $('rule3').innerHTML = '🏆 Find all 6. Pure logic — no guessing needed!';
+  }
+}
 function newPuzzle() {
-  const { reg, cats } = genPuzzle();
+  N = BOARDSIZE; NCATS = BOARDSIZE;
+  syncSizeUI();
+  const creative = (N === 8);
+  $('board').style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+  $('board').style.gridTemplateRows = `repeat(${N}, 1fr)`;
+  let reg, cats;
+  if (creative) {
+    // 8x8 creative: seeds guarantee winnability, no hidden solution
+    const seeds = placeCats();
+    reg = growRegions(seeds);
+    cats = [];
+  } else {
+    const p = genPuzzle();
+    reg = p.reg; cats = p.cats;
+  }
   const pet = S ? S.pet : 'cat';
   const autoOn = S ? S.autoOn : true;
   const regionOf = {}, regionCells = Array.from({ length: N }, () => []);
@@ -281,6 +318,7 @@ function newPuzzle() {
   S = {
     reg, cats, pet, regionOf, regionCells,
     catSet: new Set(cats.map(([c,r]) => c+','+r)),
+    creative,
     placed: new Set(),
     safe: new Set(),
     auto: new Set(),
@@ -288,7 +326,7 @@ function newPuzzle() {
     mode: 'hunt',
     lives: NLIVES, found: 0, mistakes: 0,
     phase: 'title', started: false, elapsed: 0,
-    solCount: countSolutions(reg),
+    solCount: creative ? -1 : countSolutions(reg),
   };
   $('titleOverlay').classList.remove('hidden');
   $('endOverlay').classList.add('hidden');
@@ -431,7 +469,19 @@ function tryPlace(c, r, el) {
   if (S.phase !== 'play' || S.placed.size >= NCATS) return;
   startTimer();
   const k = c+','+r;
-  if (S.catSet.has(k)) {
+  let valid;
+  if (S.creative) {
+    // creative mode: valid iff no constraint violated vs placed pets
+    valid = true;
+    for (const pk of S.placed) {
+      const [pc, pr] = pk.split(',').map(Number);
+      if (pc === c || pr === r || S.regionOf[pk] === S.regionOf[k] ||
+          (Math.abs(pr - r) <= 1 && Math.abs(pc - c) <= 1)) { valid = false; break; }
+    }
+  } else {
+    valid = S.catSet.has(k);
+  }
+  if (valid) {
     S.placed.add(k); S.found++;
     S.safe.delete(k);
     recomputeAuto();
@@ -455,7 +505,7 @@ function win() {
   clearInterval(S.timerId);
   const P = PETS[S.pet];
   $('endTitle').textContent = P.winTitle;
-  $('endText').innerHTML = 'All 6 ' + P.plural + ' ' + P.findText + '.';
+  $('endText').innerHTML = 'All ' + NCATS + ' ' + P.plural + ' ' + P.findText + '.';
   $('endStats').textContent = '⏱ ' + fmtTime(S.elapsed) + ' · ' + (S.mistakes === 0 ? 'flawless! no mistakes' : S.mistakes + (S.mistakes === 1 ? ' mistake' : ' mistakes'));
   setTimeout(() => $('endOverlay').classList.remove('hidden'), 450);
   winSound();
@@ -463,21 +513,34 @@ function win() {
 function gameOver() {
   S.phase = 'over';
   clearInterval(S.timerId);
-  // reveal cats
-  for (const [c, r] of S.cats) {
-    const k = c+','+r;
-    if (!S.placed.has(k)) tileEls[r*N+c].classList.add('reveal');
+  if (!S.creative) {
+    // reveal cats (classic mode only)
+    for (const [c, r] of S.cats) {
+      const k = c+','+r;
+      if (!S.placed.has(k)) tileEls[r*N+c].classList.add('reveal');
+    }
+    S.placed = new Set(S.catSet);
   }
-  S.placed = new Set(S.catSet);
   refreshTiles();
   $('endTitle').textContent = 'OUT OF HEARTS 💔';
-  $('endText').innerHTML = 'The ' + PETS[S.pet].plural + ' outsmarted you this time.<br><span class="sub">red frames = where they were hiding</span>';
-  $('endStats').textContent = 'found ' + S.found + '/6';
+  $('endText').innerHTML = S.creative
+    ? 'The ' + PETS[S.pet].plural + ' outsmarted you this time.'
+    : 'The ' + PETS[S.pet].plural + ' outsmarted you this time.<br><span class="sub">red frames = where they were hiding</span>';
+  $('endStats').textContent = 'found ' + S.found + '/' + NCATS;
   setTimeout(() => $('endOverlay').classList.remove('hidden'), 600);
   badSound();
 }
 
 /* ---------- buttons ---------- */
+document.querySelectorAll('.sizbtn').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.sizbtn').forEach(x => x.classList.remove('sel'));
+    b.classList.add('sel');
+    BOARDSIZE = parseInt(b.getAttribute('data-size'));
+    tone(500,.07,'triangle',.06);
+    newPuzzle();
+  };
+});
 $('startBtn').onclick = () => { tone(600,.1,'triangle',.08); $('titleOverlay').classList.add('hidden'); S.phase = 'play'; };
 $('againBtn').onclick = () => { tone(600,.1,'triangle',.08); newPuzzle(); S.phase = 'play'; };
 $('newBtn').onclick = () => { tone(500,.08,'triangle',.07); newPuzzle(); S.phase = 'play'; };
