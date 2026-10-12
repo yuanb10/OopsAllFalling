@@ -145,7 +145,7 @@
       <div style="margin-top:12px;font-size:14px;opacity:.75">— BOARD SIZE —</div>
       <div style="display:flex;gap:10px;justify-content:center;margin-top:6px">
         <button class="bigbtn sizbtn sel" data-size="6" style="font-size:15px;padding:10px 18px">6×6<br><span style="font-size:11px;opacity:.8">classic hunt</span></button>
-        <button class="bigbtn sizbtn" data-size="8" style="font-size:15px;padding:10px 18px">8×8<br><span style="font-size:11px;opacity:.8">big board</span></button>
+        <button class="bigbtn sizbtn" data-size="12" style="font-size:15px;padding:10px 18px">12×12<br><span style="font-size:11px;opacity:.8">big board</span></button>
       </div>
       <div style="margin-top:10px;font-size:14px;opacity:.75">— CHOOSE YOUR PET —</div>
       <div id="petRow" style="display:flex;gap:10px;justify-content:center;margin-top:6px">
@@ -181,6 +181,10 @@ const PALETTE = [
   { bg:'#b48ce8', dark:'#8663bd' },  /* purple */
   { bg:'#e85d5d', dark:'#b93a3a' },  /* red */
   { bg:'#b08d5f', dark:'#7d6140' },  /* brown */
+  { bg:'#4dd0e1', dark:'#2aa5b8' },  /* cyan */
+  { bg:'#c0d94e', dark:'#8fa32e' },  /* lime */
+  { bg:'#e040a0', dark:'#a92e78' },  /* magenta */
+  { bg:'#78909c', dark:'#546e7a' },  /* slate */
 ];
 let S = null;
 let BOARDSIZE = 6;
@@ -282,10 +286,10 @@ function genPuzzle() {
 /* ---------- game state ---------- */
 function syncSizeUI() {
   $('catTotal').textContent = NCATS;
-  if (N === 8) {
-    $('rule1').innerHTML = '🐾 Place 8 pets. Each needs its own territory!';
-    $('rule2').innerHTML = '🗺️ The board is split into 8 colored regions — <b>one pet per region</b>.';
-    $('rule3').innerHTML = '🏆 Place all 8. Pure logic — no guessing needed!';
+  if (N > 6) {
+    $('rule1').innerHTML = '🐾 Place ' + N + ' pets. Each needs its own territory!';
+    $('rule2').innerHTML = '🗺️ The board is split into ' + N + ' colored regions — <b>one pet per region</b>.';
+    $('rule3').innerHTML = '🏆 Place all ' + N + '. Pure logic — no guessing needed!';
   } else {
     $('rule1').innerHTML = '🐾 6 pets are hiding. Each needs its own territory!';
     $('rule2').innerHTML = '🗺️ The board is split into 6 colored regions — <b>one pet per region</b>.';
@@ -295,7 +299,7 @@ function syncSizeUI() {
 function newPuzzle() {
   N = BOARDSIZE; NCATS = BOARDSIZE;
   syncSizeUI();
-  const creative = (N === 8);
+  const creative = (N > 6);
   $('board').style.gridTemplateColumns = `repeat(${N}, 1fr)`;
   $('board').style.gridTemplateRows = `repeat(${N}, 1fr)`;
   let reg, cats;
